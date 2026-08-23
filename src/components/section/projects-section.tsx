@@ -1,4 +1,4 @@
-import { CoverflowCarousel, type CoverflowSlide } from "@/components/ui/coverflow-carousel";
+import { ProjectCarousel, type ProjectSlide } from "@/components/ui/project-carousel";
 import { DATA } from "@/data/resume";
 
 function hostOf(url: string) {
@@ -10,7 +10,7 @@ function hostOf(url: string) {
 }
 
 export default function ProjectsSection() {
-    const slides: CoverflowSlide[] = DATA.projects.map((project) => {
+    const slides: ProjectSlide[] = DATA.projects.map((project) => {
         const host = hostOf(project.href);
         return {
             src: project.image,
@@ -47,15 +47,12 @@ export default function ProjectsSection() {
                         </p>
                     </div>
                 </div>
-                <CoverflowCarousel
+                <ProjectCarousel
                     slides={slides}
                     label="Projects"
                     showCaption
                     showPagination
                     showNavigation
-                    cardWidth="clamp(190px, 25vw, 340px)"
-                    fade={0.07}
-                    depth={0.55}
                 />
             </div>
         </section>
