@@ -63,13 +63,23 @@ export default async function BlogPage({
                 return (
                   <BlurFade delay={BLUR_FADE_DELAY * 3 + id * 0.05} key={slug}>
                     <Link
-                      className="flex items-start gap-x-2 group cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                      className="flex items-start gap-x-3 group cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                       href={`/blog/${slug}`}
                     >
                       <span className="text-xs font-mono tabular-nums font-medium mt-[5px]">
                         {String(indexNumber).padStart(2, "0")}.
                       </span>
-                      <div className="flex flex-col gap-y-2 flex-1">
+                      {post.image && (
+                        /* eslint-disable-next-line @next/next/no-img-element */
+                        <img
+                          src={post.image}
+                          alt=""
+                          aria-hidden
+                          loading="lazy"
+                          className="hidden sm:block size-16 shrink-0 rounded-lg object-cover ring-1 ring-border"
+                        />
+                      )}
+                      <div className="flex flex-col gap-y-2 flex-1 min-w-0">
                         <p className="tracking-tight text-lg font-medium">
                           <span className="group-hover:text-foreground transition-colors">
                             {post.title}
@@ -79,6 +89,11 @@ export default async function BlogPage({
                             />
                           </span>
                         </p>
+                        {post.summary && (
+                          <p className="text-sm text-muted-foreground line-clamp-2">
+                            {post.summary}
+                          </p>
+                        )}
                         <p className="text-xs text-muted-foreground">
                           {post.publishedAt}
                         </p>

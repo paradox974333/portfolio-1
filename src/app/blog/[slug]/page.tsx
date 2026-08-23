@@ -8,6 +8,12 @@ import { mdxComponents } from "@/mdx-components";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
+// Frontmatter may carry a site-relative path or a full URL; metadata needs absolute.
+function absoluteUrl(src: string) {
+  return src.startsWith("http") ? src : `${DATA.url}${src}`;
+}
+
+
 function getSortedPosts() {
   return [...allPosts].sort((a, b) => {
     if (new Date(a.publishedAt) > new Date(b.publishedAt)) {
@@ -56,7 +62,7 @@ export async function generateMetadata({
       ...(image && {
         images: [
           {
-            url: `${DATA.url}${image}`,
+            url: absoluteUrl(image),
           },
         ],
       }),
@@ -66,7 +72,7 @@ export async function generateMetadata({
       title,
       description,
       ...(image && {
-        images: [`${DATA.url}${image}`],
+        images: [absoluteUrl(image)],
       }),
     },
   };
@@ -104,7 +110,7 @@ export default async function Blog({
     dateModified: post.publishedAt,
     description: post.summary,
     image: post.image
-      ? `${DATA.url}${post.image}`
+      ? absoluteUrl(post.image)
       : `${DATA.url}/blog/${slug}/opengraph-image`,
     url: `${DATA.url}/blog/${slug}`,
     author: {
@@ -134,8 +140,18 @@ export default async function Blog({
         </h1>
         <p className="text-sm text-muted-foreground">
           {formatDate(post.publishedAt)}
+          {post.author ? ` · ${post.author}` : ""}
         </p>
       </div>
+      {post.image && (
+        /* eslint-disable-next-line @next/next/no-img-element */
+        <img
+          src={post.image}
+          alt=""
+          aria-hidden
+          className="mt-6 w-full rounded-xl border border-border object-cover aspect-[1200/630]"
+        />
+      )}
       <div className="my-6 flex w-full items-center">
         <div
           className="flex-1 h-px bg-border"

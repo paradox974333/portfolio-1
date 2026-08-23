@@ -17,7 +17,7 @@ export default function Page() {
   return (
     <main className="min-h-dvh flex flex-col gap-14 relative">
       <section id="hero">
-        <div className="mx-auto w-full max-w-2xl space-y-8">
+        <div className="mx-auto w-full space-y-8">
           <div className="gap-2 gap-y-6 flex flex-col md:flex-row justify-between">
             <div className="gap-2 flex flex-col order-2 md:order-1">
               <BlurFadeText
@@ -47,7 +47,7 @@ export default function Page() {
             <h2 className="text-xl font-bold">About</h2>
           </BlurFade>
           <BlurFade delay={BLUR_FADE_DELAY * 4}>
-            <div className="prose max-w-full text-pretty font-sans leading-relaxed text-muted-foreground dark:prose-invert">
+            <div className="prose max-w-3xl text-pretty font-sans leading-relaxed text-muted-foreground dark:prose-invert">
               <Markdown>
                 {DATA.summary}
               </Markdown>
@@ -87,10 +87,10 @@ export default function Page() {
                       <img
                         src={education.logoUrl}
                         alt={education.school}
-                        className="size-8 md:size-10 p-1 border rounded-full shadow ring-2 ring-border overflow-hidden object-contain flex-none"
+                        className="size-8 md:size-10 rounded-full overflow-hidden object-contain flex-none"
                       />
                     ) : (
-                      <div className="size-8 md:size-10 p-1 border rounded-full shadow ring-2 ring-border bg-muted flex-none" />
+                      <div className="size-8 md:size-10 rounded-full bg-muted flex-none" />
                     )}
                     <div className="flex-1 min-w-0 flex flex-col gap-0.5">
                       <div className="font-semibold leading-none flex items-center gap-2">

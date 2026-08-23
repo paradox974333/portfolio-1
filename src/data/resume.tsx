@@ -1,699 +1,310 @@
 import { Icons } from "@/components/icons";
 import { HomeIcon, NotebookIcon } from "lucide-react";
-import { ReactLight } from "@/components/ui/svgs/reactLight";
-import { NextjsIconDark } from "@/components/ui/svgs/nextjsIconDark";
-import { Typescript } from "@/components/ui/svgs/typescript";
-import { Nodejs } from "@/components/ui/svgs/nodejs";
+// Languages
+import { Cplusplus } from "@/components/ui/svgs/cplusplus";
 import { Python } from "@/components/ui/svgs/python";
-import { Golang } from "@/components/ui/svgs/golang";
-import { Postgresql } from "@/components/ui/svgs/postgresql";
-import { Docker } from "@/components/ui/svgs/docker";
-import { Kubernetes } from "@/components/ui/svgs/kubernetes";
+import { CLang } from "@/components/ui/svgs/clang";
+import { Javascript } from "@/components/ui/svgs/javascript";
 import { Java } from "@/components/ui/svgs/java";
-import { Csharp } from "@/components/ui/svgs/csharp";
+import { Mysql } from "@/components/ui/svgs/mysql";
+// AI / ML
+import { Pytorch } from "@/components/ui/svgs/pytorch";
+import { Tensorflow } from "@/components/ui/svgs/tensorflow";
+import { Huggingface } from "@/components/ui/svgs/huggingface";
+import { Langchain } from "@/components/ui/svgs/langchain";
+import { Opencv } from "@/components/ui/svgs/opencv";
+// Backend & web
+import { Fastapi } from "@/components/ui/svgs/fastapi";
+import { Nodejs } from "@/components/ui/svgs/nodejs";
+import { Express } from "@/components/ui/svgs/express";
+import { ReactLight } from "@/components/ui/svgs/reactLight";
+import { Graphql } from "@/components/ui/svgs/graphql";
+// Data stores
+import { Mongodb } from "@/components/ui/svgs/mongodb";
+import { Redis } from "@/components/ui/svgs/redis";
+import { Elasticsearch } from "@/components/ui/svgs/elasticsearch";
+// Cloud & tooling
+import { Aws } from "@/components/ui/svgs/aws";
+import { Googlecloud } from "@/components/ui/svgs/googlecloud";
+import { Docker } from "@/components/ui/svgs/docker";
+import { Git } from "@/components/ui/svgs/git";
+import { Linux } from "@/components/ui/svgs/linux";
+import { Postman } from "@/components/ui/svgs/postman";
+// Systems & graphics
+import { Qt } from "@/components/ui/svgs/qt";
+import { Opengl } from "@/components/ui/svgs/opengl";
+import { Cmake } from "@/components/ui/svgs/cmake";
 
 export const DATA = {
-  name: "Dillion Verma",
-  initials: "DV",
-  url: "https://dillion.io",
-  location: "San Francisco, CA",
-  locationLink: "https://www.google.com/maps/place/sanfrancisco",
+  name: "Manoj L",
+  initials: "ML",
+  url: "https://github.com/paradox974333",
+  location: "Bangalore, Karnataka, India",
+  locationLink: "https://www.google.com/maps/place/Bengaluru",
   description:
-    "Software Engineer turned Entrepreneur. I love building things and helping people. Very active on Twitter.",
+    "Project Associate at IIT Madras, building real-time C++ for image-guided surgical navigation — and agentic AI systems running in production.",
   summary:
-    "At the end of 2022, I quit my job as a software engineer to go fulltime into building and scaling my own SaaS businesses. In the past, [I pursued a double degree in computer science and business](/#education), [interned at big tech companies in Silicon Valley](https://www.youtube.com/watch?v=d-LJ2e5qKdE), and [competed in over 21 hackathons for fun](/#hackathons). I also had the pleasure of being a part of the first ever in-person cohort of buildspace called [buildspace sf1](https://buildspace.so/sf1).",
-  avatarUrl: "/me.png",
+    "I build systems where latency and correctness actually matter. At [HTIC, IIT Madras](/#work) I write production C++ for image-guided surgical navigation — real-time 2D/3D vertebra tracking from fluoroscopic X-ray, camera calibration, C-arm geometry estimation and 2D-to-3D registration — code that runs inside robotic-assisted spine procedures, where a dropped frame is not an option.\n\nThat same instinct shows up in everything else I ship. I built [ImperialX](https://imperialx.io) end-to-end, including [Sally](/#projects) — a multi-agent trading system on an MCP architecture whose agents reason over live market data and execute at sub-100ms latency, with RAG-grounded analysis and human-in-the-loop controls. I built the [ScalePath](https://scalepath.in/) platform that carries founders from idea to investment ready, the automations and CRM deployment behind [VG INNFRA](https://www.vginnfra.com/), and a [3D explorer for 5,000+ celestial bodies](/#hackathons) at NASA Space Apps 2024. Along the way: a Seq2Seq transliteration model past 92% accuracy, and a calibration pipeline holding sub-0.5 pixel reprojection error.\n\nI speak Kannada, English and Hindi.",
+  avatarUrl: "/me.jpg",
   skills: [
-    { name: "React", icon: ReactLight },
-    { name: "Next.js", icon: NextjsIconDark },
-    { name: "Typescript", icon: Typescript },
-    { name: "Node.js", icon: Nodejs },
+    { name: "C++", icon: Cplusplus },
     { name: "Python", icon: Python },
-    { name: "Go", icon: Golang },
-    { name: "Postgres", icon: Postgresql },
-    { name: "Docker", icon: Docker },
-    { name: "Kubernetes", icon: Kubernetes },
+    { name: "C", icon: CLang },
+    { name: "JavaScript", icon: Javascript },
     { name: "Java", icon: Java },
-    { name: "C++", icon: Csharp },
+    { name: "MySQL", icon: Mysql },
+    { name: "PyTorch", icon: Pytorch },
+    { name: "TensorFlow", icon: Tensorflow },
+    { name: "Hugging Face", icon: Huggingface },
+    { name: "LangChain", icon: Langchain },
+    { name: "OpenCV", icon: Opencv },
+    { name: "FastAPI", icon: Fastapi },
+    { name: "Node.js", icon: Nodejs },
+    { name: "Express", icon: Express },
+    { name: "React", icon: ReactLight },
+    { name: "GraphQL", icon: Graphql },
+    { name: "MongoDB", icon: Mongodb },
+    { name: "Redis", icon: Redis },
+    { name: "ElasticSearch", icon: Elasticsearch },
+    { name: "AWS", icon: Aws },
+    { name: "Google Cloud", icon: Googlecloud },
+    { name: "Docker", icon: Docker },
+    { name: "Git", icon: Git },
+    { name: "Linux", icon: Linux },
+    { name: "Postman", icon: Postman },
+    { name: "Qt", icon: Qt },
+    { name: "OpenGL", icon: Opengl },
+    { name: "CMake", icon: Cmake },
   ],
   navbar: [
     { href: "/", icon: HomeIcon, label: "Home" },
     { href: "/blog", icon: NotebookIcon, label: "Blog" },
   ],
   contact: {
-    email: "hello@example.com",
-    tel: "+123456789",
+    email: "manoj123l288@gmail.com",
+    tel: "+919743339652",
     social: {
       GitHub: {
         name: "GitHub",
-        url: "https://dub.sh/dillion-github",
+        url: "https://github.com/paradox974333",
         icon: Icons.github,
-        navbar: true,
-      },
-
-      LinkedIn: {
-        name: "LinkedIn",
-        url: "https://dub.sh/dillion-linkedin",
-        icon: Icons.linkedin,
-
-        navbar: true,
-      },
-      X: {
-        name: "X",
-        url: "https://dub.sh/dillion-twitter",
-        icon: Icons.x,
-
-        navbar: true,
-      },
-      Youtube: {
-        name: "Youtube",
-        url: "https://dub.sh/dillion-youtube",
-        icon: Icons.youtube,
         navbar: true,
       },
       email: {
         name: "Send Email",
-        url: "#",
+        url: "mailto:manoj123l288@gmail.com",
         icon: Icons.email,
-
-        navbar: false,
+        navbar: true,
       },
     },
   },
 
   work: [
     {
-      company: "Atomic Finance",
-      href: "https://atomic.finance",
+      company: "HTIC, IIT Madras",
+      href: "https://www.hticiitm.org/",
+      badges: [],
+      location: "Chennai, India",
+      title: "Project Associate",
+      logoUrl: "/htic.png",
+      start: "June 2026",
+      end: "Present",
+      description:
+        "Building production-grade C++ software for image-guided surgical navigation in spine and orthopedic procedures, with real-time 2D/3D vertebra tracking from fluoroscopic X-ray imaging. Implemented camera calibration, C-arm geometry estimation and 2D-to-3D registration pipelines, plus deep-learning anatomical landmark detection and pose estimation. Optimized low-latency inference pipelines for robotic-assisted surgery, integrating OpenCV, VTK, ITK, Qt and C++ modules while working directly with surgeons, researchers and engineers. Owned unit and integration testing, performance profiling and CI/CD contributions to keep the system reliable in clinical environments.",
+    },
+    {
+      company: "ScalePath",
+      href: "https://scalepath.in/",
       badges: [],
       location: "Remote",
-      title: "Bitcoin Protocol Engineer",
-      logoUrl: "/atomic.png",
-      start: "May 2021",
-      end: "Oct 2022",
+      title: "Full-Stack Developer",
+      logoUrl: "/scalepath.png",
+      start: "2026",
+      end: "Present",
       description:
-        "Implemented the Bitcoin discreet log contract (DLC) protocol specifications as an open source Typescript SDK. Dockerized all microservices and setup production kubernetes cluster. Architected a data lake using AWS S3 and Athena for historical backtesting of bitcoin trading strategies. Built a mobile app using react native and typescript.",
+        "Built the entire ScalePath platform — a product that takes founders from an idea to investment ready, covering idea validation, business building, traction growth and investor readiness. Owned the stack end-to-end, from data model and backend services through to the product surface founders actually use.",
     },
     {
-      company: "Shopify",
+      company: "ImperialX",
+      href: "https://imperialx.io",
       badges: [],
-      href: "https://shopify.com",
+      location: "Bangalore (Remote)",
+      title: "AI Systems Developer (Freelance)",
+      logoUrl: "/imperialx.png",
+      start: "August 2025",
+      end: "Present",
+      description:
+        "Built the ImperialX platform end-to-end, architecting the Sally AI trading system on an MCP architecture with sub-100ms execution latency, context-aware agents and automated risk management. Designed agent-to-agent communication, memory components and planning mechanisms for autonomous decision-making, backed by human-in-the-loop fallback controls and real-time monitoring. Implemented RAG pipelines over vector embeddings to ground agents in domain knowledge, and built backend microservices in FastAPI and Node.js with WebSockets for real-time communication. Deployed on AWS with Docker and CI/CD, using Redis and ElasticSearch for high-throughput data pipelines.",
+    },
+    {
+      company: "VG INNFRA",
+      href: "https://www.vginnfra.com/",
+      badges: [],
       location: "Remote",
-      title: "Software Engineer",
-      logoUrl: "/shopify.svg",
-      start: "January 2021",
-      end: "April 2021",
+      title: "Web Developer",
+      logoUrl: "/vginnfra.png",
+      start: "2026",
+      end: "Present",
       description:
-        "Implemented a custom Kubernetes controller in Go to automate the deployment of MySQL and ProxySQL custom resources in order to enable 2,000+ internal developers to instantly deploy their app databases to production. Wrote several scripts in Go to automate MySQL database failovers while maintaining master-slave replication topologies and keeping Zookeeper nodes consistent with changes.",
+        "Web developer for VG INNFRA, a branded residential asset developer. Built the company's internal automations and delivered their CRM deployment, wiring the tooling their sales and delivery teams run on.",
     },
     {
-      company: "Nvidia",
-      href: "https://nvidia.com/",
+      company: "Social_buzzz18",
+      href: "https://socialbuzzz18.in/",
       badges: [],
-      location: "Santa Clara, CA",
-      title: "Software Engineer",
-      logoUrl: "/nvidia.png",
-      start: "January 2020",
-      end: "April 2020",
+      location: "Remote",
+      title: "Freelance Web Developer",
+      logoUrl: "/socialbuzzz.png",
+      start: "2026",
+      end: "Present",
       description:
-        "Architected and wrote the entire MVP of the GeForce Now Cloud Gaming internal admin and A/B testing dashboard using React, Redux, TypeScript, and Python.",
+        "Freelance web developer for Social_buzzz18, a digital marketing studio in Kalaburagi. Built their entire website end-to-end, and delivered two more complete builds for a college and a school through them.",
     },
     {
-      company: "Splunk",
-      href: "https://splunk.com",
+      company: "HTIC, IIT Madras",
+      href: "https://www.hticiitm.org/",
       badges: [],
-      location: "San Jose, CA",
-      title: "Software Engineer",
-      logoUrl: "/splunk.svg",
-      start: "January 2019",
-      end: "April 2019",
+      location: "Chennai, India",
+      title: "Project Intern, Image Guided Robotic Systems",
+      logoUrl: "/htic.png",
+      start: "February 2026",
+      end: "May 2026",
       description:
-        "Co-developed a prototype iOS app with another intern in Swift for the new Splunk Phantom security orchestration product (later publicly demoed and launched at .conf annual conference in Las Vegas). Implemented a realtime service for the iOS app in Django (Python) and C++; serialized data using protobufs transmitted over gRPC resulting in an approximate 500% increase in data throughput.",
-    },
-    {
-      company: "Lime",
-      href: "https://li.me/",
-      badges: [],
-      location: "San Francisco, CA",
-      title: "Software Engineer",
-      logoUrl: "/lime.svg",
-      start: "January 2018",
-      end: "April 2018",
-      description:
-        "Proposed and implemented an internal ruby API for sending/receiving commands to scooters over LTE networks. Developed a fully automated bike firmware update system to handle asynchronous firmware updates of over 100,000+ scooters worldwide, and provide progress reports in real-time using React, Ruby on Rails, PostgreSQL and AWS EC2 saving hundreds of developer hours.",
-    },
-    {
-      company: "Mitre Media",
-      href: "https://mitremedia.com/",
-      badges: [],
-      location: "Toronto, ON",
-      title: "Software Engineer",
-      logoUrl: "/mitremedia.png",
-      start: "May 2017",
-      end: "August 2017",
-      description:
-        "Designed and implemented a robust password encryption and browser cookie storage system in Ruby on Rails. Leveraged the Yahoo finance API to develop the dividend.com equity screener",
+        "Developed real-time 2D/3D spine tracking software with computer vision pipelines for anatomical landmark detection and tracking. Implemented low-latency inference for real-time surgical assistance and integrated perception, tracking and robotic control modules. Collaborated with cross-functional teams on code reviews, integration and delivery under Agile practices.",
     },
   ],
   education: [
     {
-      school: "Buildspace",
-      href: "https://buildspace.so",
-      degree: "s3, s4, sf1, s5",
-      logoUrl: "/buildspace.jpg",
-      start: "2023",
-      end: "2024",
+      school: "Dayananda Sagar University",
+      href: "https://www.dsu.edu.in/",
+      degree: "B.Tech, Computer Science",
+      logoUrl: "/dsu.png",
+      start: "2022",
+      end: "2026",
     },
     {
-      school: "University of Waterloo",
-      href: "https://uwaterloo.ca",
-      degree: "Bachelor's Degree of Computer Science (BCS)",
-      logoUrl: "/waterloo.png",
-      start: "2016",
-      end: "2021",
-    },
-    {
-      school: "Wilfrid Laurier University",
-      href: "https://wlu.ca",
-      degree: "Bachelor's Degree of Business Administration (BBA)",
-      logoUrl: "/laurier.png",
-      start: "2016",
-      end: "2021",
-    },
-    {
-      school: "International Baccalaureate",
-      href: "https://ibo.org",
-      degree: "IB Diploma",
-      logoUrl: "/ib.png",
-      start: "2012",
-      end: "2016",
+      school: "Christ Academy Junior College",
+      href: "https://christacademy.in/",
+      degree: "Pre-University (PUC)",
+      logoUrl: "/christacademy.png",
+      start: "2020",
+      end: "2022",
     },
   ],
   projects: [
     {
-      title: "Chat Collect",
-      href: "https://chatcollect.com",
-      dates: "Jan 2024 - Feb 2024",
+      title: "Sally AI Trading System",
+      href: "https://imperialx.io",
+      dates: "August 2025 - Present",
       active: true,
       description:
-        "With the release of the [OpenAI GPT Store](https://openai.com/blog/introducing-the-gpt-store), I decided to build a SaaS which allows users to collect email addresses from their GPT users. This is a great way to build an audience and monetize your GPT API usage.",
-      technologies: [
-        "Next.js",
-        "Typescript",
-        "PostgreSQL",
-        "Prisma",
-        "TailwindCSS",
-        "Stripe",
-        "Shadcn UI",
-        "Magic UI",
-      ],
-      links: [
-        {
-          type: "Website",
-          href: "https://chatcollect.com",
-          icon: <Icons.globe className="size-3" />,
-        },
-      ],
-      image: "",
-      video:
-        "https://pub-83c5db439b40468498f97946200806f7.r2.dev/chat-collect.mp4",
+        "Multi-agent trading system built on an MCP architecture. Autonomous agents reason over live market data and execute trades through LLM tool calling, grounded by RAG-based market analysis, with memory components and human-in-the-loop safety controls. Sub-100ms execution latency, running in production on AWS.",
+      technologies: ["Python","LangChain","MCP","FastAPI","Node.js","Redis","ElasticSearch","WebSockets","AWS","Docker"],
+      links: [{ type: "Website", href: "https://imperialx.io", icon: <Icons.globe className="size-3" /> }],
+      image: "/projects/imperialx.jpg",
+      video: "",
     },
     {
-      title: "Magic UI",
-      href: "https://magicui.design",
-      dates: "June 2023 - Present",
+      title: "ScalePath",
+      href: "https://scalepath.in/",
+      dates: "2026 - Present",
       active: true,
       description:
-        "Designed, developed and sold animated UI components for developers.",
-      technologies: [
-        "Next.js",
-        "Typescript",
-        "PostgreSQL",
-        "Prisma",
-        "TailwindCSS",
-        "Stripe",
-        "Shadcn UI",
-        "Magic UI",
-      ],
-      links: [
-        {
-          type: "Website",
-          href: "https://magicui.design",
-          icon: <Icons.globe className="size-3" />,
-        },
-        {
-          type: "Source",
-          href: "https://github.com/magicuidesign/magicui",
-          icon: <Icons.github className="size-3" />,
-        },
-      ],
-      image: "",
-      video: "https://cdn.magicui.design/bento-grid.mp4",
+        "The entire ScalePath platform, built end-to-end — a product that carries founders from an idea through validation, business building and traction, to investment ready. Data model, backend services and the product surface founders actually use.",
+      technologies: ["Next.js","TypeScript","React","Node.js","SQL","Tailwind CSS"],
+      links: [{ type: "Website", href: "https://scalepath.in/", icon: <Icons.globe className="size-3" /> }],
+      image: "/projects/scalepath.jpg",
+      video: "",
     },
     {
-      title: "llm.report",
-      href: "https://llm.report",
-      dates: "April 2023 - September 2023",
+      title: "VG INNFRA",
+      href: "https://www.vginnfra.com/",
+      dates: "2026 - Present",
       active: true,
       description:
-        "Developed an open-source logging and analytics platform for OpenAI: Log your ChatGPT API requests, analyze costs, and improve your prompts.",
-      technologies: [
-        "Next.js",
-        "Typescript",
-        "PostgreSQL",
-        "Prisma",
-        "TailwindCSS",
-        "Shadcn UI",
-        "Magic UI",
-        "Stripe",
-        "Cloudflare Workers",
-      ],
-      links: [
-        {
-          type: "Website",
-          href: "https://llm.report",
-          icon: <Icons.globe className="size-3" />,
-        },
-        {
-          type: "Source",
-          href: "https://github.com/dillionverma/llm.report",
-          icon: <Icons.github className="size-3" />,
-        },
-      ],
-      image: "",
-      video: "https://cdn.llm.report/openai-demo.mp4",
+        "Website, internal automations and CRM deployment for a branded residential asset developer with 45 lakh+ sq ft delivered. Built the tooling their sales and delivery teams run on day to day.",
+      technologies: ["Next.js","TypeScript","React","Automation","CRM"],
+      links: [{ type: "Website", href: "https://www.vginnfra.com/", icon: <Icons.globe className="size-3" /> }],
+      image: "/projects/vginnfra.jpg",
+      video: "",
     },
     {
-      title: "Automatic Chat",
-      href: "https://automatic.chat",
-      dates: "April 2023 - March 2024",
+      title: "Social_buzzz18",
+      href: "https://socialbuzzz18.in/",
+      dates: "2026 - Present",
       active: true,
       description:
-        "Developed an AI Customer Support Chatbot which automatically responds to customer support tickets using the latest GPT models.",
-      technologies: [
-        "Next.js",
-        "Typescript",
-        "PostgreSQL",
-        "Prisma",
-        "TailwindCSS",
-        "Shadcn UI",
-        "Magic UI",
-        "Stripe",
-        "Cloudflare Workers",
-      ],
+        "Full website build for a digital marketing studio in Kalaburagi, plus two further complete builds delivered through them for a college and a school.",
+      technologies: ["JavaScript","React","Node.js","HTML","CSS"],
+      links: [{ type: "Website", href: "https://socialbuzzz18.in/", icon: <Icons.globe className="size-3" /> }],
+      image: "/projects/socialbuzzz.jpg",
+      video: "",
+    },
+    {
+      title: "Real-Time Spine Tracking System",
+      href: "",
+      dates: "February 2026 - Present",
+      active: true,
+      description:
+        "Real-time 2D/3D tracking of spinal structures for image-guided surgical navigation: vertebral landmark detection, 2D-to-3D reconstruction, image registration and low-latency inference pipelines tuned for robotic-assisted procedures.",
+      technologies: ["C++","OpenCV","VTK","ITK","Qt","CMake","Deep Learning"],
+      links: [],
+      image: "/projects/spine.jpg",
+      video: "",
+    },
+    {
+      title: "3D Exoplanet & Solar System Explorer",
+      href: "https://paradox974333.github.io/nasaspaceapp/",
+      dates: "October 2024",
+      active: false,
+      description:
+        "Interactive 3D platform rendering 5,000+ celestial bodies from NASA open APIs, with orbital simulations and real-time rendering. Built for the NASA Space Apps Challenge 2024.",
+      technologies: ["JavaScript","Three.js","WebGL","Node.js","NASA APIs","WebSockets"],
       links: [
-        {
-          type: "Website",
-          href: "https://automatic.chat",
-          icon: <Icons.globe className="size-3" />,
-        },
+        { type: "Live", href: "https://paradox974333.github.io/nasaspaceapp/", icon: <Icons.globe className="size-3" /> },
+        { type: "Source", href: "https://github.com/paradox974333/nasaspaceapp", icon: <Icons.github className="size-3" /> },
       ],
-      image: "",
-      video:
-        "https://pub-83c5db439b40468498f97946200806f7.r2.dev/automatic-chat.mp4",
+      image: "/projects/nasa.jpg",
+      video: "",
+    },
+    {
+      title: "Neural Transliteration System",
+      href: "",
+      dates: "2025",
+      active: false,
+      description:
+        "Sequence-to-sequence transliteration model using LSTM/GRU encoders and beam-search decoding, reaching over 92% accuracy. Deployed with Hugging Face transformers behind a production-ready inference pipeline.",
+      technologies: ["Python","PyTorch","Hugging Face","Seq2Seq","LSTM","Beam Search"],
+      links: [],
+      image: "/projects/translit.jpg",
+      video: "",
+    },
+    {
+      title: "Camera Radial Distortion Calibration",
+      href: "",
+      dates: "2026",
+      active: false,
+      description:
+        "Calibration pipeline that corrects radial lens distortion through numerical optimization, achieving sub-0.5 pixel reprojection error with robust distortion correction for surgical imaging.",
+      technologies: ["C++","Python","OpenCV","NumPy"],
+      links: [],
+      image: "/projects/calibration.jpg",
+      video: "",
     },
   ],
   hackathons: [
     {
-      title: "Hack Western 5",
-      dates: "November 23rd - 25th, 2018",
-      location: "London, Ontario",
+      title: "NASA Space Apps Challenge 2024",
+      dates: "October 2024",
+      location: "",
       description:
-        "Developed a mobile application which delivered bedtime stories to children using augmented reality.",
-      image:
-        "https://pub-83c5db439b40468498f97946200806f7.r2.dev/hackline/hack-western.png",
-      mlh: "https://s3.amazonaws.com/logged-assets/trust-badge/2019/mlh-trust-badge-2019-white.svg",
-      links: [],
-    },
-    {
-      title: "Hack The North",
-      dates: "September 14th - 16th, 2018",
-      location: "Waterloo, Ontario",
-      description:
-        "Developed a mobile application which delivers university campus wide events in real time to all students.",
-      image:
-        "https://pub-83c5db439b40468498f97946200806f7.r2.dev/hackline/hack-the-north.png",
-      mlh: "https://s3.amazonaws.com/logged-assets/trust-badge/2019/mlh-trust-badge-2019-white.svg",
-      links: [],
-    },
-    {
-      title: "FirstNet Public Safety Hackathon",
-      dates: "March 23rd - 24th, 2018",
-      location: "San Francisco, California",
-      description:
-        "Developed a mobile application which communcicates a victims medical data from inside an ambulance to doctors at hospital.",
-      icon: "public",
-      image:
-        "https://pub-83c5db439b40468498f97946200806f7.r2.dev/hackline/firstnet.png",
-      links: [],
-    },
-    {
-      title: "DeveloperWeek Hackathon",
-      dates: "February 3rd - 4th, 2018",
-      location: "San Francisco, California",
-      description:
-        "Developed a web application which aggregates social media data regarding cryptocurrencies and predicts future prices.",
-      image:
-        "https://pub-83c5db439b40468498f97946200806f7.r2.dev/hackline/developer-week.jpg",
-      links: [
-        {
-          title: "Github",
-          icon: <Icons.github className="h-4 w-4" />,
-          href: "https://github.com/cryptotrends/cryptotrends",
-        },
-      ],
-    },
-    {
-      title: "HackDavis",
-      dates: "January 20th - 21st, 2018",
-      location: "Davis, California",
-      description:
-        "Developed a mobile application which allocates a daily carbon emission allowance to users to move towards a sustainable environment.",
-      image:
-        "https://pub-83c5db439b40468498f97946200806f7.r2.dev/hackline/hack-davis.png",
-      win: "Best Data Hack",
-      mlh: "https://s3.amazonaws.com/logged-assets/trust-badge/2018/white.svg",
-      links: [
-        {
-          title: "Devpost",
-          icon: <Icons.globe className="h-4 w-4" />,
-          href: "https://devpost.com/software/my6footprint",
-        },
-        {
-          title: "ML",
-          icon: <Icons.github className="h-4 w-4" />,
-          href: "https://github.com/Wallet6/my6footprint-machine-learning",
-        },
-        {
-          title: "iOS",
-          icon: <Icons.github className="h-4 w-4" />,
-          href: "https://github.com/Wallet6/CarbonWallet",
-        },
-        {
-          title: "Server",
-          icon: <Icons.github className="h-4 w-4" />,
-          href: "https://github.com/Wallet6/wallet6-server",
-        },
-      ],
-    },
-    {
-      title: "ETH Waterloo",
-      dates: "October 13th - 15th, 2017",
-      location: "Waterloo, Ontario",
-      description:
-        "Developed a blockchain application for doctors and pharmacists to perform trustless transactions and prevent overdosage in patients.",
-      image:
-        "https://pub-83c5db439b40468498f97946200806f7.r2.dev/hackline/eth-waterloo.png",
-      links: [
-        {
-          title: "Organization",
-          icon: <Icons.github className="h-4 w-4" />,
-          href: "https://github.com/ethdocnet",
-        },
-      ],
-    },
-    {
-      title: "Hack The North",
-      dates: "September 15th - 17th, 2017",
-      location: "Waterloo, Ontario",
-      description:
-        "Developed a virtual reality application allowing users to see themselves in third person.",
-      image:
-        "https://pub-83c5db439b40468498f97946200806f7.r2.dev/hackline/hack-the-north.png",
-      mlh: "https://s3.amazonaws.com/logged-assets/trust-badge/2017/white.svg",
-      links: [
-        {
-          title: "Streamer Source",
-          icon: <Icons.github className="h-4 w-4" />,
-          href: "https://github.com/justinmichaud/htn2017",
-        },
-        {
-          title: "Client Source",
-          icon: <Icons.github className="h-4 w-4" />,
-          href: "https://github.com/dillionverma/RTSPClient",
-        },
-      ],
-    },
-    {
-      title: "Hack The 6ix",
-      dates: "August 26th - 27th, 2017",
-      location: "Toronto, Ontario",
-      description:
-        "Developed an open platform for people shipping items to same place to combine shipping costs and save money.",
-      image:
-        "https://pub-83c5db439b40468498f97946200806f7.r2.dev/hackline/hack-the-6ix.jpg",
-      mlh: "https://s3.amazonaws.com/logged-assets/trust-badge/2017/white.svg",
+        "Built the 3D Exoplanet & Solar System Explorer with a multidisciplinary team — an interactive real-time visualization platform covering 5,000+ celestial bodies, powered by NASA open APIs and orbital simulation.",
+      image: "/spaceapps.png",
       links: [
         {
           title: "Source",
           icon: <Icons.github className="h-4 w-4" />,
-          href: "https://github.com/ShareShip/ShareShip",
-        },
-        {
-          title: "Site",
-          icon: <Icons.globe className="h-4 w-4" />,
-          href: "https://share-ship.herokuapp.com/",
-        },
-      ],
-    },
-    {
-      title: "Stupid Hack Toronto",
-      dates: "July 23rd, 2017",
-      location: "Toronto, Ontario",
-      description:
-        "Developed a chrome extension which tracks which facebook profiles you have visited and immediately texts your girlfriend if you visited another girls page.",
-      image:
-        "https://pub-83c5db439b40468498f97946200806f7.r2.dev/hackline/stupid-hackathon.png",
-      links: [
-        {
-          title: "Source",
-          icon: <Icons.github className="h-4 w-4" />,
-          href: "https://github.com/nsagirlfriend/nsagirlfriend",
-        },
-      ],
-    },
-    {
-      title: "Global AI Hackathon - Toronto",
-      dates: "June 23rd - 25th, 2017",
-      location: "Toronto, Ontario",
-      description:
-        "Developed a python library which can be imported to any python game and change difficulty of the game based on real time emotion of player. Uses OpenCV and webcam for facial recognition, and a custom Machine Learning Model trained on a [Kaggle Emotion Dataset](https://www.kaggle.com/c/challenges-in-representation-learning-facial-expression-recognition-challenge/leaderboard) using [Tensorflow](https://www.tensorflow.org/Tensorflow) and [Keras](https://keras.io/). This project recieved 1st place prize at the Global AI Hackathon - Toronto and was also invited to demo at [NextAI Canada](https://www.nextcanada.com/next-ai).",
-      image:
-        "https://pub-83c5db439b40468498f97946200806f7.r2.dev/hackline/global-ai-hackathon.jpg",
-      win: "1st Place Winner",
-      links: [
-        {
-          title: "Article",
-          icon: <Icons.globe className="h-4 w-4" />,
-          href: "https://syncedreview.com/2017/06/26/global-ai-hackathon-in-toronto/",
-        },
-        {
-          title: "Source",
-          icon: <Icons.github className="h-4 w-4" />,
-          href: "https://github.com/TinySamosas/",
-        },
-      ],
-    },
-    {
-      title: "McGill AI for Social Innovation Hackathon",
-      dates: "June 17th - 18th, 2017",
-      location: "Montreal, Quebec",
-      description:
-        "Developed realtime facial microexpression analyzer using AI",
-      image:
-        "https://pub-83c5db439b40468498f97946200806f7.r2.dev/hackline/ai-for-social-good.jpg",
-      links: [],
-    },
-    {
-      title: "Open Source Circular Economy Days Hackathon",
-      dates: "June 10th, 2017",
-      location: "Toronto, Ontario",
-      description:
-        "Developed a custom admin interface for food waste startup <a href='http://genecis.co/'>Genecis</a> to manage their data and provide analytics.",
-      image:
-        "https://pub-83c5db439b40468498f97946200806f7.r2.dev/hackline/open-source-circular-economy-days.jpg",
-      win: "1st Place Winner",
-      links: [
-        {
-          title: "Source",
-          icon: <Icons.github className="h-4 w-4" />,
-          href: "https://github.com/dillionverma/genecis",
-        },
-      ],
-    },
-    {
-      title: "Make School's Student App Competition 2017",
-      dates: "May 19th - 21st, 2017",
-      location: "International",
-      description: "Improved PocketDoc and submitted to online competition",
-      image:
-        "https://pub-83c5db439b40468498f97946200806f7.r2.dev/hackline/make-school-hackathon.png",
-      win: "Top 10 Finalist | Honourable Mention",
-      links: [
-        {
-          title: "Medium Article",
-          icon: <Icons.globe className="h-4 w-4" />,
-          href: "https://medium.com/make-school/the-winners-of-make-schools-student-app-competition-2017-a6b0e72f190a",
-        },
-        {
-          title: "Devpost",
-          icon: <Icons.globe className="h-4 w-4" />,
-          href: "https://devpost.com/software/pocketdoc-react-native",
-        },
-        {
-          title: "YouTube",
-          icon: <Icons.youtube className="h-4 w-4" />,
-          href: "https://www.youtube.com/watch?v=XwFdn5Rmx68",
-        },
-        {
-          title: "Source",
-          icon: <Icons.github className="h-4 w-4" />,
-          href: "https://github.com/dillionverma/pocketdoc-react-native",
-        },
-      ],
-    },
-    {
-      title: "HackMining",
-      dates: "May 12th - 14th, 2017",
-      location: "Toronto, Ontario",
-      description: "Developed neural network to optimize a mining process",
-      image:
-        "https://pub-83c5db439b40468498f97946200806f7.r2.dev/hackline/hack-mining.png",
-      links: [],
-    },
-    {
-      title: "Waterloo Equithon",
-      dates: "May 5th - 7th, 2017",
-      location: "Waterloo, Ontario",
-      description:
-        "Developed Pocketdoc, an app in which you take a picture of a physical wound, and the app returns common solutions or cures to the injuries or diseases.",
-      image:
-        "https://pub-83c5db439b40468498f97946200806f7.r2.dev/hackline/waterloo-equithon.png",
-      links: [
-        {
-          title: "Devpost",
-          icon: <Icons.globe className="h-4 w-4" />,
-          href: "https://devpost.com/software/pocketdoc-react-native",
-        },
-        {
-          title: "YouTube",
-          icon: <Icons.youtube className="h-4 w-4" />,
-          href: "https://www.youtube.com/watch?v=XwFdn5Rmx68",
-        },
-        {
-          title: "Source",
-          icon: <Icons.github className="h-4 w-4" />,
-          href: "https://github.com/dillionverma/pocketdoc-react-native",
-        },
-      ],
-    },
-    {
-      title: "SpaceApps Waterloo",
-      dates: "April 28th - 30th, 2017",
-      location: "Waterloo, Ontario",
-      description:
-        "Developed Earthwatch, a web application which allows users in a plane to virtually see important points of interest about the world below them. They can even choose to fly away from their route and then fly back if they choose. Special thanks to CesiumJS for providing open source world and plane models.",
-      image:
-        "https://pub-83c5db439b40468498f97946200806f7.r2.dev/hackline/space-apps.png",
-      links: [
-        {
-          title: "Source",
-          icon: <Icons.github className="h-4 w-4" />,
-          href: "https://github.com/dillionverma/earthwatch",
-        },
-      ],
-    },
-    {
-      title: "MHacks 9",
-      dates: "March 24th - 26th, 2017",
-      location: "Ann Arbor, Michigan",
-      description:
-        "Developed Super Graphic Air Traffic, a VR website made to introduce people to the world of air traffic controlling. This project was built completely using THREE.js as well as a node backend server.",
-      image:
-        "https://pub-83c5db439b40468498f97946200806f7.r2.dev/hackline/mhacks-9.png",
-      mlh: "https://s3.amazonaws.com/logged-assets/trust-badge/2017/white.svg",
-      links: [
-        {
-          title: "Source",
-          icon: <Icons.github className="h-4 w-4" />,
-          href: "https://github.com/dillionverma/threejs-planes",
-        },
-      ],
-    },
-    {
-      title: "StartHacks I",
-      dates: "March 4th - 5th, 2017",
-      location: "Waterloo, Ontario",
-      description:
-        "Developed at StartHacks 2017, Recipic is a mobile app which allows you to take pictures of ingredients around your house, and it will recognize those ingredients using ClarifAI image recognition API and return possible recipes to make. Recipic recieved 1st place at the hackathon for best pitch and hack.",
-      image:
-        "https://pub-83c5db439b40468498f97946200806f7.r2.dev/hackline/starthacks.png",
-      win: "1st Place Winner",
-      mlh: "https://s3.amazonaws.com/logged-assets/trust-badge/2017/white.svg",
-      links: [
-        {
-          title: "Source (Mobile)",
-          icon: <Icons.github className="h-4 w-4" />,
-          href: "https://github.com/mattBlackDesign/recipic-ionic",
-        },
-        {
-          title: "Source (Server)",
-          icon: <Icons.github className="h-4 w-4" />,
-          href: "https://github.com/mattBlackDesign/recipic-rails",
-        },
-      ],
-    },
-    {
-      title: "QHacks II",
-      dates: "February 3rd - 5th, 2017",
-      location: "Kingston, Ontario",
-      description:
-        "Developed a mobile game which enables city-wide manhunt with random lobbies",
-      image:
-        "https://pub-83c5db439b40468498f97946200806f7.r2.dev/hackline/qhacks.png",
-      mlh: "https://s3.amazonaws.com/logged-assets/trust-badge/2017/white.svg",
-      links: [
-        {
-          title: "Source (Mobile)",
-          icon: <Icons.github className="h-4 w-4" />,
-          href: "https://github.com/dillionverma/human-huntr-react-native",
-        },
-        {
-          title: "Source (API)",
-          icon: <Icons.github className="h-4 w-4" />,
-          href: "https://github.com/mattBlackDesign/human-huntr-rails",
-        },
-      ],
-    },
-    {
-      title: "Terrible Hacks V",
-      dates: "November 26th, 2016",
-      location: "Waterloo, Ontario",
-      description:
-        "Developed a mock of Windows 11 with interesting notifications and functionality",
-      image:
-        "https://pub-83c5db439b40468498f97946200806f7.r2.dev/hackline/terrible-hacks-v.png",
-      links: [
-        {
-          title: "Source",
-          icon: <Icons.github className="h-4 w-4" />,
-          href: "https://github.com/justinmichaud/TerribleHacks2016-Windows11",
-        },
-      ],
-    },
-    {
-      title: "Portal Hackathon",
-      dates: "October 29, 2016",
-      location: "Kingston, Ontario",
-      description:
-        "Developed an internal widget for uploading assignments using Waterloo's portal app",
-      image:
-        "https://pub-83c5db439b40468498f97946200806f7.r2.dev/hackline/portal-hackathon.png",
-      links: [
-        {
-          title: "Source",
-          icon: <Icons.github className="h-4 w-4" />,
-          href: "https://github.com/UWPortalSDK/crowmark",
+          href: "https://github.com/paradox974333/nasaspaceapp",
         },
       ],
     },

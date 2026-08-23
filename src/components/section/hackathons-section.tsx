@@ -19,9 +19,9 @@ export default function HackathonsSection() {
           <div className="flex flex-col gap-y-3 items-center justify-center">
             <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl">I like building things</h2>
             <p className="text-muted-foreground md:text-lg/relaxed lg:text-base/relaxed xl:text-lg/relaxed text-balance text-center">
-              During my time in university, I attended {DATA.hackathons.length}+
-              hackathons. People from around the country would come together and
-              build incredible things in 2-3 days. It was eye-opening to see the endless possibilities brought to life by a group of motivated and passionate individuals.
+              Competitions where a small team turns an idea into something working in
+              a couple of days. It is eye-opening to see what a group of
+              motivated people can put together under that kind of pressure.
             </p>
           </div>
         </div>
@@ -33,10 +33,10 @@ export default function HackathonsSection() {
                   <img
                     src={hackathon.image}
                     alt={hackathon.title}
-                    className="size-10 bg-card z-10 shrink-0 overflow-hidden p-1 border rounded-full shadow ring-2 ring-border object-contain flex-none"
+                    className="size-10 bg-card z-10 shrink-0 overflow-hidden rounded-full object-contain flex-none"
                   />
                 ) : (
-                  <div className="size-10 bg-card z-10 shrink-0 overflow-hidden p-1 border rounded-full shadow ring-2 ring-border flex-none" />
+                  <div className="size-10 bg-card z-10 shrink-0 overflow-hidden rounded-full flex-none" />
                 )}
               </TimelineConnectItem>
               <div className="flex flex-1 flex-col justify-start gap-2 min-w-0">
