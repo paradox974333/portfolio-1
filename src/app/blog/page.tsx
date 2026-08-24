@@ -4,6 +4,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { paginate, normalizePage } from "@/lib/pagination";
 import { ChevronRight } from "lucide-react";
+import { ViewCount } from "@/components/blog/view-count";
 
 export const metadata: Metadata = {
   title: "Blog",
@@ -94,8 +95,9 @@ export default async function BlogPage({
                             {post.summary}
                           </p>
                         )}
-                        <p className="text-xs text-muted-foreground">
-                          {post.publishedAt}
+                        <p className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <span>{post.publishedAt}</span>
+                          <ViewCount slug={slug} />
                         </p>
                       </div>
                     </Link>
