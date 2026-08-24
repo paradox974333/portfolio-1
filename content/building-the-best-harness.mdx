@@ -1,0 +1,283 @@
+---
+title: "Building the Best Harness"
+publishedAt: "2026-08-24"
+updatedAt: "2026-08-24"
+author: "Manoj L"
+summary: "The model is not the agent. The harness is — the loop, the tool gate, and the context discipline around it. A practical guide to building one that doesn't fall over at 500 tools."
+---
+
+Everyone benchmarks models. Almost nobody benchmarks the thing wrapped around the model, and that thing decides whether your agent works.
+
+The industry has settled on a rough equation: **agent = model + harness**. The harness is everything you own — the loop that calls the model, the tools you expose, how you shape results, what you keep in context, what you throw away, what you refuse to let the model do. Swap a great model into a bad harness and you get an expensive, confidently wrong agent. Put a decent model in a disciplined harness and it quietly does the work.
+
+This post is about building the disciplined one.
+
+---
+
+## The loop is the product
+
+Strip an agent to its skeleton and it's about fifteen lines:
+
+```ts title="loop.ts"
+let messages = [userTurn];
+
+while (true) {
+  const res = await model.create({ system, tools: visibleTools(), messages });
+
+  messages.push({ role: "assistant", content: res.content });
+  if (res.stop_reason !== "tool_use") return res;
+
+  const calls = res.content.filter((b) => b.type === "tool_use");
+
+  // Execute in parallel, return ALL results in ONE user message.
+  const results = await Promise.all(calls.map(execute));
+  messages.push({ role: "user", content: results });
+}
+```
+
+Every hard problem in agent engineering lives inside one of three expressions in that snippet: `visibleTools()`, `execute`, and `messages`. Tool exposure, result shaping, context hygiene. Get those three right and the rest is plumbing.
+
+One detail people get wrong immediately: if the model made three parallel tool calls, all three `tool_result` blocks go back in a **single** user message. Splitting them across messages teaches the model to stop calling tools in parallel, and it will quietly get slower forever. If a tool failed, still return its result with `is_error: true` — never drop it.
+
+---
+
+## Failure one: the tool tax
+
+Here's the scenario that breaks most integrations. You wire up MCP. You connect GitHub, Slack, Jira, Drive, Postgres, Sentry, your internal platform server. Suddenly you have 500 tools, and every single request ships all 500 schemas before the user's question is even read.
+
+Do the arithmetic:
+
+| Tools loaded | Approx. tokens burned | Share of a 200k window |
+| --- | --- | --- |
+| 10 | 2.5k – 5k | ~2% |
+| 50 | 12k – 25k | ~9% |
+| 130 | 33k – 65k | ~26% |
+| 500 | 125k – 250k | 60% – 100%+ |
+
+A single tool definition — name, description, JSON schema — runs roughly 250 to 500 tokens. At 500 tools you have spent your entire context window on a menu.
+
+And the money is the smaller problem. **Accuracy collapses first.** Benchmarks through 2026 put tool-selection accuracy around 85–91% at five tools, falling to 65–78% once you cross twenty. The dominant failure isn't even picking the wrong tool — 60–75% of failures are parameter mismatches: right tool, wrong arguments, because the model is skimming forty near-identical schemas instead of reading one.
+
+There's a second-order effect too. Long context degrades retrieval precision generally — the "context rot" problem. A window stuffed with tool definitions isn't neutral ballast; it's noise competing for the model's attention budget with the actual task.
+
+So: **never put 500 tools in context.** Not "try to trim it." Never.
+
+---
+
+## The fix: three tiers of tool exposure
+
+Think of your tool surface as three tiers, not one list.
+
+**Tier 0 — always resident.** The five to ten tools needed on nearly every turn. For a coding agent: read, edit, run, grep, plus the search tool itself. This is the only tier that pays rent in every request.
+
+**Tier 1 — searchable.** Everything else, indexed but not loaded. The model sees one tool: `search_tools`. It queries in natural language, gets back a short ranked list of names and one-line descriptions, and picks.
+
+**Tier 2 — lazily hydrated.** Only when the model commits to a tool does the full JSON schema enter context.
+
+The Claude API ships this as a first-class server tool, which saves you building the index:
+
+```ts title="deferred-tools.ts"
+const response = await client.messages.create({
+  model: "claude-opus-5",
+  max_tokens: 16000,
+  tools: [
+    // Tier 0 — resident. Must NOT be deferred.
+    { type: "tool_search_tool_bm25_20251119", name: "tool_search_tool_bm25" },
+    readFile,
+    editFile,
+
+    // Tiers 1 and 2 — indexed, schema loaded on demand.
+    ...allMcpTools.map((t) => ({ ...t, defer_loading: true })),
+  ],
+  messages,
+});
+```
+
+Two rules the API enforces, and you'd hit them anyway rolling your own: the search tool can never be deferred, and at least one tool must stay resident. Defer everything and you get a 400 — an agent with no way to discover anything is not an agent.
+
+How deep should the search return? Fixed `top_k` is the obvious answer and the wrong one. Recent work on adaptive tool retrieval matched the coverage of showing 50 tools while presenting **7 on average** across a 370-tool benchmark, and downstream selection accuracy went **up** — 93.1% versus 87.1% for a fixed list of five. Shorter, better-targeted lists beat longer ones twice over: cheaper and more accurate. If you're not doing adaptive depth yet, cap the surface at 10–15 tools per turn and route through a retrieval step.
+
+If you own the MCP servers, do the work upstream too. Harness's own MCP server redesign collapsed 130+ tools into 11 task-shaped ones and cut tool-definition overhead from about 26% of the context window to 1.6%. Consolidation at the source beats clever gating downstream.
+
+---
+
+## The code-execution detour
+
+There's a louder proposal going around: skip tool calls entirely. Expose MCP servers as a filesystem of TypeScript modules, let the model write a program that imports and composes them, run it in a sandbox, return only the final value. Anthropic reported one workflow dropping from 150,000 tokens to 2,000 — a 98.7% cut — because intermediate results never touch the context.
+
+The token math is real, and the pattern genuinely solves a problem tool-calling can't: filtering 10,000 spreadsheet rows down to five inside the sandbox instead of streaming all 10,000 through the model.
+
+**But be clear-eyed about the accuracy trade.** Code execution doesn't remove the hard part, it relocates it:
+
+- You trade *one* structured decision the model is heavily trained and evaluated on (emit a `tool_use` block with validated arguments) for *many* unvalidated ones inside a program — imports, control flow, field names, null handling.
+- Progressive disclosure cuts both ways. The model writes code against modules it has only partly read. Schema validation that would have rejected a bad argument at the boundary now surfaces as a runtime error three calls deep — or worse, as a silently wrong result.
+- Errors become harder to attribute. A failed tool call tells you which tool and which argument. A failed program tells you a stack trace, and the model's next move is to guess at a patch.
+- Per-call permission gating mostly disappears. You approved "run this script," not "delete that record" — and inside a program the harness can no longer put a human in front of the dangerous step.
+- You now own a sandbox: resource limits, network policy, timeouts, monitoring.
+
+The honest position: **search-based tool gating should be your default, and code execution is a targeted optimization** for data-heavy fan-out where intermediate payloads, not decisions, are the bottleneck. Use tool calls when the decision matters and each step needs a gate. Use code when the model has already decided and the remaining work is bulk data movement. A harness that supports both, and picks per task, beats one that's religious about either.
+
+---
+
+## Failure two: a dirty loop
+
+Suppose you fixed tools. Turn three looks great, turn thirty is incoherent. That's context hygiene, and it's where most harnesses rot.
+
+The governing principle, stated well by Anthropic's context engineering guidance: find **the smallest set of high-signal tokens that maximize the likelihood of the desired outcome**. Context is not storage. It's an attention budget, and every token you spend is one the model isn't spending on the task.
+
+Four disciplines keep a loop clean.
+
+### 1. Return handles, not blobs
+
+The most common harness bug is piping raw tool output straight into `messages`. A two-hour transcript, a 5 MB JSON response, a whole file — once it's in, it's in for every subsequent turn, and if the model passes it to another tool, you pay for it twice.
+
+Give every tool a fixed result envelope:
+
+```ts title="tool-result.ts"
+type ToolResult = {
+  ok: boolean;
+  /** Always in context. Hard cap ~200 tokens. */
+  summary: string;
+  /** Full payload lives on disk / in the sandbox. */
+  handle?: string; // "res://run/8f2a.json"
+  truncated?: { shown: number; total: number; hint: string };
+};
+```
+
+The model sees a summary and a handle. If it needs the body, it reads the handle — deliberately, once, with a range. This is just-in-time retrieval: keep lightweight identifiers in context, hydrate on demand. It's how a coding agent works with a repository that would never fit in a window.
+
+### 2. Budget every tool result
+
+Set a hard token ceiling per tool response — Claude Code uses 25,000 by default — and make truncation *instructive* rather than silent:
+
+```json title="truncated-result.json"
+{
+  "ok": true,
+  "summary": "412 matches in 89 files. Showing 20.",
+  "truncated": {
+    "shown": 20,
+    "total": 412,
+    "hint": "Too broad. Narrow with path:src/auth or add a type filter."
+  }
+}
+```
+
+That hint is the difference between an agent that refines its query and one that re-runs the same search three times. Same principle for errors: an error message is a prompt. `ValidationError at line 213` teaches nothing. "`user_id` must be a UUID, e.g. `f47ac10b-...`; you passed the email address" produces a correct retry.
+
+### 3. Evict before you summarize
+
+Two different operations, often confused:
+
+- **Clearing** drops stale content outright. Tool results from twenty turns ago are usually dead weight — the model already extracted what mattered. The Claude API exposes this as context editing: `clear_tool_uses_20250919` (which can optionally clear the tool *inputs* too) and `clear_thinking_20251015`.
+- **Compaction** summarizes history as you approach the window limit, preserving decisions, constraints, and open threads while discarding transcript noise. Server-side compaction (`compact_20260112`) triggers around 150k tokens by default.
+
+Clear first, compact second. Clearing is lossless with respect to signal; compaction always loses something, so make it work on the smallest history you can.
+
+The compaction prompt is worth real effort. Its job is recall versus precision: capture every architectural decision, unresolved bug, and file path still in flight; drop every superseded diff and duplicated file read. A bad compaction is how an agent forgets the constraint you gave it in turn two.
+
+For anything spanning sessions, add **structured note-taking** — let the agent write durable notes to a file and re-read them. Compaction is lossy by design; a written note isn't. This is how agents hold coherence across thousands of steps.
+
+### 4. Don't break the cache
+
+Underrated and nearly free. Prompt caching is a **prefix match**: the render order is `tools` → `system` → `messages`, and one changed byte anywhere in the prefix invalidates everything after it. Cache reads run roughly a tenth the cost of fresh input.
+
+Which means the classic harness mistakes are expensive:
+
+- A timestamp or request ID in the system prompt — invalidates on **every single turn**.
+- Non-deterministic tool ordering — a `Set` or dict iteration that reshuffles your tool array quietly kills the cache.
+- Rewriting the system prompt mid-conversation to change modes. On models that support it, append a `{"role": "system"}` message to `messages` instead; the cached prefix survives, and it's the injection-safe channel for operator instructions anyway.
+
+Verify rather than assume. If `usage.cache_read_input_tokens` is zero across repeated turns, something in your prefix is mutating — go find it. Dynamic tool loading interacts with this directly: churning the tool list every turn saves schema tokens and costs you the entire cached prefix. Keep tier 0 frozen and ordered; let only the hydrated tier-2 schemas vary, positioned after your last cache breakpoint.
+
+---
+
+## Tool design is harness design
+
+You can't gate your way out of a badly designed tool surface. The fixes are boring and they compound:
+
+| Instead of | Ship | Why |
+| --- | --- | --- |
+| `list_users` + `list_events` + `create_event` | `schedule_event` | One call instead of a three-turn chain, each link with its own failure mode |
+| `read_logs` | `search_logs` | Returns matches, not a file the model has to scan in context |
+| `get_by_id` + `list_txns` + `list_notes` | `get_customer_context` | Collapses the workflow the model was going to run anyway |
+| `search`, `search_2`, `find` | `jira_search`, `asana_search` | Namespacing measurably improves selection between overlapping tools |
+| Returning `uuid`, `mime_type`, `256px_url` | `name`, `file_type`, `image_url` | Semantic fields resolve to meaning; opaque IDs force extra lookups |
+
+Add a `response_format` enum — `CONCISE` versus `DETAILED` — and let the model choose. In Anthropic's example the concise form cost about 72 tokens against 206 for detailed, roughly a third. Most turns don't need detailed.
+
+And write tool descriptions like onboarding docs, not API reference. Make implicit knowledge explicit: what a valid query looks like, what your internal terms mean, how resources relate. Small refinements to descriptions produce disproportionate improvements in tool-use evals — it's the highest-leverage editing you'll do.
+
+---
+
+## Sub-agents: the only real way to buy context back
+
+Compaction reclaims context lossily. Sub-agents reclaim it structurally.
+
+Spawn a sub-agent with a clean window and a narrow brief. It burns 50k tokens exploring, reading, and dead-ending — then returns a 1,000–2,000 token summary. The lead agent's context grows by two thousand tokens instead of fifty thousand, and none of the dead ends ever enter its window.
+
+This is the right shape whenever work fans out: research across several sources, per-file migrations, "investigate these six hypotheses." The lead agent synthesizes; the sub-agents do the reading. Give them low effort settings and cheaper models where the task is mechanical — a sub-agent grepping a codebase does not need your most expensive model.
+
+The discipline that makes it work: sub-agents return **findings, not transcripts**. If a sub-agent hands back its raw exploration, you've just moved the mess.
+
+---
+
+## The harness is the security boundary
+
+The model proposes; the harness disposes. Structurally, the model must never call anything directly — it emits a structured tool call, and the harness validates the schema, checks permissions, executes, and injects the result. That separation is what keeps a prompt injection from becoming arbitrary code execution.
+
+Then watch for the **lethal trifecta**. An execution path is dangerous when it holds all three of:
+
+1. Access to private data
+2. Exposure to untrusted content (web pages, emails, uploads, third-party API responses)
+3. An outbound channel (send, write, POST)
+
+Any two are usually fine. All three on one path is an exfiltration primitive, and no amount of "ignore malicious instructions" in your system prompt fixes it — **containment, not filtering, is the defense**. Break a leg of the triangle per path: read-only database roles, network allowlists for the sandbox, no outbound tools on paths that ingest untrusted content, and a quarantined model for reading hostile input that never gets to act.
+
+Least privilege, per tool, per path. Sandbox the executor. Log every call with its arguments.
+
+---
+
+## Measure the harness, not just the model
+
+Most teams eval the model and ship the harness on vibes. Invert that. Build 20–50 realistic tasks that each need a dozen or more tool calls, and record per run:
+
+- task success (the only metric that matters)
+- tool calls to completion
+- total tokens, split into cached and fresh
+- wrong-tool rate versus wrong-argument rate — they have different fixes
+- context high-water mark, and how many compactions fired
+
+Then eval the harness's own failure modes, which model benchmarks will never surface: injection resistance, behavior on tool timeout, recovery from a malformed result, what happens at 500 tools versus 50.
+
+Keep a held-out set. The fastest iteration loop is reading transcripts — including having a model read them and report where the agent got confused. Nearly every fix that comes out of that is a tool description, an error message, or a result shape.
+
+---
+
+## Build order
+
+If you're starting today, in priority order:
+
+1. **Cap resident tools at 10.** Put everything else behind search with deferred schema loading.
+2. **Give every tool a result envelope** with a summary, a handle, and instructive truncation.
+3. **Freeze your cache prefix.** Stable system prompt, deterministic tool order, volatile content last. Verify with cache-read metrics.
+4. **Clear stale tool results** before you compact; compact before you hit the wall.
+5. **Rewrite your error messages** as instructions. Cheapest accuracy win available.
+6. **Move fan-out to sub-agents** that return findings, not transcripts.
+7. **Audit every path for the lethal trifecta.** Break a leg.
+8. **Build the eval set** and measure tokens and tool-call counts, not just success.
+9. **Only then** consider code execution, and only for data-heavy stages where you've measured intermediate payloads as the bottleneck.
+
+Both Anthropic and OpenAI have said the same thing in different words: investment in harness infrastructure returned more than investment in the model. A good harness around a decent model beats a bad harness around a great one — and unlike the model, the harness is the part you actually control.
+
+---
+
+## Further reading
+
+- [Code execution with MCP](https://www.anthropic.com/engineering/code-execution-with-mcp) — Anthropic Engineering
+- [Effective context engineering for AI agents](https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents) — Anthropic Engineering
+- [Writing effective tools for agents](https://www.anthropic.com/engineering/writing-tools-for-agents) — Anthropic Engineering
+- [How Many Tools Should an LLM Agent See? A Chance-Corrected Answer](https://arxiv.org/html/2605.24660v1) — arXiv
+- [Designing MCP for the age of AI agents](https://www.harness.io/blog/harness-mcp-server-redesign) — the 130-to-11 tool consolidation
+- [Tool discovery strategies](https://docs.aws.amazon.com/prescriptive-guidance/latest/mcp-strategies/mcp-tool-strategy-discovery.html) — AWS Prescriptive Guidance
+- [Lethal Trifecta threat model](https://agentpatterns.ai/security/lethal-trifecta-threat-model/) — AgentPatterns
+- [awesome-harness-engineering](https://github.com/ai-boost/awesome-harness-engineering) — patterns, evals, memory, permissions, observability
