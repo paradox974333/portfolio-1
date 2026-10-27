@@ -5,11 +5,14 @@ import { DATA } from "@/data/resume";
 import { ArrowUpRight } from "lucide-react";
 import { AnimatePresence, motion, useMotionValue, useSpring } from "motion/react";
 import { useState } from "react";
+import { BrowserShot } from "./desk-items";
 import { useFinePointer } from "./use-fine-pointer";
 
 type Project = (typeof DATA.projects)[number];
 
 const yearOf = (dates: string) => dates.match(/\d{4}/)?.[0] ?? "Earlier";
+
+const hostOf = (url: string) => new URL(url).hostname.replace(/^www\./, "");
 
 const GROUPS = DATA.projects
   .reduce<[string, Project[]][]>((groups, project) => {
@@ -71,11 +74,11 @@ export function WorkList() {
               const live = project.active && project.href;
               const content = (
                 <>
-                  <span className="flex min-w-0 flex-1 flex-col gap-x-3 sm:flex-row sm:items-baseline">
+                  <span className="flex min-w-0 flex-1 items-baseline gap-2.5 sm:gap-3">
                     <span className="shrink-0 font-medium text-foreground">
-                      {project.title}
+                      {project.short}
                     </span>
-                    <span className="truncate text-sm text-muted-foreground">
+                    <span className="truncate text-[0.8125rem] text-muted-foreground sm:text-sm">
                       {project.tagline}
                     </span>
                   </span>
@@ -95,7 +98,7 @@ export function WorkList() {
                 </>
               );
               const row =
-                "group flex items-start gap-3 rounded-lg px-2 py-2 sm:px-3 hover:bg-panel";
+                "group flex items-center gap-3 rounded-lg px-2 py-2 text-[0.875rem] sm:px-3 sm:text-[0.9375rem] hover:bg-panel";
               return (
                 <li
                   key={project.title}
@@ -127,18 +130,21 @@ export function WorkList() {
             aria-hidden
             className="pointer-events-none fixed left-0 top-0 z-50"
             style={{ x, y }}
-            initial={{ opacity: 0, scale: 0.85, rotate: -8 }}
-            animate={{ opacity: 1, scale: 1, rotate: -3 }}
-            exit={{ opacity: 0, scale: 0.9, rotate: -6 }}
+            initial={{ opacity: 0, scale: 0.9, rotate: -4 }}
+            animate={{ opacity: 1, scale: 1, rotate: -2 }}
+            exit={{ opacity: 0, scale: 0.94, rotate: -3 }}
             transition={{ type: "spring", stiffness: 380, damping: 26 }}
           >
-            <div className="ml-6 w-52 -translate-y-1/2 rounded-md bg-[#f5f5f2] p-1.5 shadow-[0_14px_30px_-8px_rgba(0,0,0,0.55)]">
-              <img
-                key={preview.image}
-                src={preview.image}
-                alt=""
-                className="aspect-[4/3] w-full rounded-[3px] object-cover object-top"
-              />
+            <div className="ml-6 w-64 -translate-y-1/2">
+              {preview.href ? (
+                <BrowserShot src={preview.image} address={hostOf(preview.href)} />
+              ) : (
+                <img
+                  src={preview.image}
+                  alt=""
+                  className="aspect-[4/3] w-full rounded-lg object-cover shadow-[0_12px_28px_-8px_rgba(0,0,0,0.55)] ring-1 ring-white/10"
+                />
+              )}
             </div>
           </motion.div>
         )}

@@ -291,33 +291,3 @@
 .page-pad:has(> [data-bleed]) {
   padding: 0;
 }
-
-@keyframes caret {
-  50% {
-    opacity: 0;
-  }
-}
-
-@keyframes steam {
-  0% {
-    transform: translateY(4px);
-    opacity: 0;
-  }
-  40% {
-    opacity: 0.8;
-  }
-  100% {
-    transform: translateY(-6px);
-    opacity: 0;
-  }
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .sticker-caret {
-    animation: caret 1.1s steps(1) infinite;
-  }
-
-  .sticker-steam {
-    animation: steam 2.6s ease-out infinite;
-  }
-}

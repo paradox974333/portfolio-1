@@ -19,7 +19,7 @@ export function ExperienceList() {
           value={work.company + work.title}
           className="border-b border-border last:border-b-0"
         >
-          <AccordionTrigger className="group gap-3 px-5 py-3 hover:bg-panel hover:no-underline sm:px-8 [&>svg]:hidden">
+          <AccordionTrigger className="group min-w-0 gap-3 px-5 py-3 hover:bg-panel hover:no-underline sm:px-8 [&>svg]:hidden">
             <span className="flex min-w-0 flex-1 items-center gap-3">
               <img
                 src={work.logoUrl}

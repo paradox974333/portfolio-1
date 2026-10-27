@@ -4,10 +4,10 @@ import { EducationGrid } from "@/components/site/education-grid";
 import { ExperienceList } from "@/components/site/experience-list";
 import { MarginNote } from "@/components/site/margin-note";
 import { NowSection } from "@/components/site/now-section";
+import { ProjectDesk } from "@/components/site/project-desk";
 import { ScrollRuler } from "@/components/site/scroll-ruler";
 import { Section } from "@/components/site/section";
 import { StackTable } from "@/components/site/stack-table";
-import { StickerDesk } from "@/components/site/sticker-desk";
 import { WorkList } from "@/components/site/work-list";
 import { WritingList } from "@/components/site/writing-list";
 import { DATA } from "@/data/resume";
@@ -29,7 +29,7 @@ export default function Page() {
         className="relative px-5 pt-1 sm:px-8"
       >
         <MarginNote className="top-24">Drag these around</MarginNote>
-        <StickerDesk />
+        <ProjectDesk />
         <p className="mt-5 font-serif text-[1.625rem] italic leading-none">
           Hello, I&apos;m {DATA.name}
         </p>
