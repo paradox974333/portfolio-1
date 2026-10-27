@@ -1,11 +1,11 @@
-import Navbar from "@/components/navbar";
 import { ThemeProvider } from "@/components/theme-provider";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { DATA } from "@/data/resume";
 import { cn } from "@/lib/utils";
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
-import Banner from "@/components/banner";
+import { Caveat, Geist, Geist_Mono, Instrument_Serif } from "next/font/google";
+import { SiteFooter } from "@/components/site/site-footer";
+import { TopNav } from "@/components/site/top-nav";
 import "./globals.css";
 
 const geist = Geist({
@@ -18,6 +18,21 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
   weight: ["300", "400", "500", "600", "700"],
   variable: "--font-mono",
+});
+
+// italic serif for the personal voice: greetings, years, the closing quote
+const instrumentSerif = Instrument_Serif({
+  subsets: ["latin"],
+  weight: "400",
+  style: ["normal", "italic"],
+  variable: "--font-instrument",
+});
+
+// handwriting for the margin notes
+const caveat = Caveat({
+  subsets: ["latin"],
+  weight: ["500"],
+  variable: "--font-caveat",
 });
 
 export const metadata: Metadata = {
@@ -65,18 +80,21 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body
         className={cn(
-          "min-h-screen bg-background font-sans antialiased",
+          "min-h-screen overflow-x-clip bg-background font-sans antialiased",
           geist.variable,
-          geistMono.variable
+          geistMono.variable,
+          instrumentSerif.variable,
+          caveat.variable
         )}
       >
-        <ThemeProvider attribute="class" defaultTheme="light">
+        <ThemeProvider attribute="class" defaultTheme="dark">
           <TooltipProvider delayDuration={0}>
-            <Banner />
-            <div className="max-w-2xl lg:max-w-4xl xl:max-w-5xl mx-auto pt-8 pb-32 sm:pt-10 sm:pb-36 px-6 sm:px-8">
-              {children}
+            {/* one ruled column over the dotted gutters */}
+            <div className="relative mx-auto min-h-dvh max-w-3xl border-x border-border bg-background">
+              <TopNav />
+              <div className="page-pad px-5 pb-8 pt-4 sm:px-8">{children}</div>
+              <SiteFooter />
             </div>
-            <Navbar />
           </TooltipProvider>
         </ThemeProvider>
       </body>

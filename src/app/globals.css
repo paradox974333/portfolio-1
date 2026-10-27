@@ -40,75 +40,105 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+  --color-panel: var(--panel);
+  --color-signal: var(--signal);
+  --color-flag: var(--flag);
+  --color-flag-bg: var(--flag-bg);
+  --font-serif: var(--font-instrument), ui-serif, Georgia, serif;
+  --font-hand: var(--font-caveat), cursive;
 }
 
+/*
+  Film and signal: the base is the blue-black of a fluoroscopy plate, the accent
+  is the tracking-overlay blue, and amber marks anything live.
+*/
 :root {
   --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --background: #fcfcfd;
+  --foreground: #0e1116;
+  --panel: #f3f4f6;
+  --card: #ffffff;
+  --card-foreground: #0e1116;
+  --popover: #ffffff;
+  --popover-foreground: #0e1116;
+  --primary: #0e1116;
+  --primary-foreground: #fcfcfd;
+  --secondary: #f1f2f4;
+  --secondary-foreground: #0e1116;
+  --muted: #f1f2f4;
+  --muted-foreground: #5d6470;
+  --accent: #eef0f3;
+  --accent-foreground: #0e1116;
+  --destructive: #dc2626;
+  --border: #e3e5e9;
+  --input: #e3e5e9;
+  --ring: #2563eb;
+  --signal: #2563eb;
+  --flag: #a16207;
+  --flag-bg: #fdf3d8;
+  --gutter-dot: #d9dce1;
+  --heat-0: #e6e8ec;
+  --heat-1: #c9dbff;
+  --heat-2: #8ab4ff;
+  --heat-3: #4c8dff;
+  --heat-4: #1f5fd6;
+  --chart-1: #2563eb;
+  --chart-2: #0d9488;
+  --chart-3: #a16207;
+  --chart-4: #7c3aed;
+  --chart-5: #e11d48;
+  --sidebar: #f3f4f6;
+  --sidebar-foreground: #0e1116;
+  --sidebar-primary: #0e1116;
+  --sidebar-primary-foreground: #fcfcfd;
+  --sidebar-accent: #eef0f3;
+  --sidebar-accent-foreground: #0e1116;
+  --sidebar-border: #e3e5e9;
+  --sidebar-ring: #2563eb;
 }
 
 .dark {
-  --background: oklch(0.18 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --background: #0a0c0f;
+  --foreground: #e9ebee;
+  --panel: #101318;
+  --card: #111419;
+  --card-foreground: #e9ebee;
+  --popover: #111419;
+  --popover-foreground: #e9ebee;
+  --primary: #e9ebee;
+  --primary-foreground: #0a0c0f;
+  --secondary: #171b21;
+  --secondary-foreground: #e9ebee;
+  --muted: #171b21;
+  --muted-foreground: #8a919c;
+  --accent: #171b21;
+  --accent-foreground: #e9ebee;
+  --destructive: #f87171;
+  --border: #1c2027;
+  --input: #252a32;
+  --ring: #4c8dff;
+  --signal: #4c8dff;
+  --flag: #f2b441;
+  --flag-bg: #2a2110;
+  --gutter-dot: #1a1e24;
+  --heat-0: #161a20;
+  --heat-1: #1d3b73;
+  --heat-2: #2b5bb5;
+  --heat-3: #3d7bf0;
+  --heat-4: #8ab8ff;
+  --chart-1: #4c8dff;
+  --chart-2: #2dd4bf;
+  --chart-3: #f2b441;
+  --chart-4: #a78bfa;
+  --chart-5: #fb7185;
+  --sidebar: #101318;
+  --sidebar-foreground: #e9ebee;
+  --sidebar-primary: #4c8dff;
+  --sidebar-primary-foreground: #e9ebee;
+  --sidebar-accent: #171b21;
+  --sidebar-accent-foreground: #e9ebee;
+  --sidebar-border: #1c2027;
+  --sidebar-ring: #4c8dff;
 }
 
 @layer base {
@@ -116,8 +146,30 @@
     @apply border-border;
   }
 
+  html {
+    scroll-padding-top: 4.5rem;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    html {
+      scroll-behavior: smooth;
+    }
+  }
+
+  /* the dot field lives in the gutters; the column paints over it */
   body {
     @apply bg-background text-foreground;
+    background-image: radial-gradient(circle at 1px 1px, var(--gutter-dot) 1px, transparent 0);
+    background-size: 22px 22px;
+  }
+
+  ::selection {
+    background: color-mix(in srgb, var(--signal) 35%, transparent);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--signal);
+    outline-offset: 2px;
   }
 
   /* Shiki dual theme support */
@@ -233,4 +285,39 @@
     @apply border-b-0;
   }
 
+}
+
+/* Pages that draw their own full-width bands opt out of the column padding. */
+.page-pad:has(> [data-bleed]) {
+  padding: 0;
+}
+
+@keyframes caret {
+  50% {
+    opacity: 0;
+  }
+}
+
+@keyframes steam {
+  0% {
+    transform: translateY(4px);
+    opacity: 0;
+  }
+  40% {
+    opacity: 0.8;
+  }
+  100% {
+    transform: translateY(-6px);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .sticker-caret {
+    animation: caret 1.1s steps(1) infinite;
+  }
+
+  .sticker-steam {
+    animation: steam 2.6s ease-out infinite;
+  }
 }

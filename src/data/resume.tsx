@@ -1,5 +1,11 @@
 import { Icons } from "@/components/icons";
-import { HomeIcon, NotebookIcon } from "lucide-react";
+import {
+  ChartCandlestick,
+  HomeIcon,
+  NotebookIcon,
+  ScanLine,
+  Send,
+} from "lucide-react";
 // Languages
 import { Cplusplus } from "@/components/ui/svgs/cplusplus";
 import { Python } from "@/components/ui/svgs/python";
@@ -45,37 +51,93 @@ export const DATA = {
     "Project Associate at IIT Madras, building real-time C++ for image-guided surgical navigation — and agentic AI systems running in production.",
   summary:
     "I build systems where latency and correctness actually matter. At [HTIC, IIT Madras](/#work) I write production C++ for image-guided surgical navigation — real-time 2D/3D vertebra tracking from fluoroscopic X-ray, camera calibration, C-arm geometry estimation and 2D-to-3D registration — code that runs inside robotic-assisted spine procedures, where a dropped frame is not an option.\n\nThat same instinct shows up in everything else I ship. I built [ImperialX](https://imperialx.io) end-to-end, including [Sally](/#projects) — a multi-agent trading system on an MCP architecture whose agents reason over live market data and execute at sub-100ms latency, with RAG-grounded analysis and human-in-the-loop controls. I built the [ScalePath](https://scalepath.in/) platform that carries founders from idea to investment ready, the automations and CRM deployment behind [VG INNFRA](https://www.vginnfra.com/), and a [3D explorer for 5,000+ celestial bodies](/#hackathons) at NASA Space Apps 2024. Along the way: a Seq2Seq transliteration model past 92% accuracy, and a calibration pipeline holding sub-0.5 pixel reprojection error.\n\nI speak Kannada, English and Hindi.",
+  intro:
+    "Most days I'm at HTIC, IIT Madras, tracking vertebrae in live X-ray, where a dropped frame is not an option. The rest of the time I build platforms end to end for founders and teams who need them shipped.",
   avatarUrl: "/me.jpg",
-  skills: [
-    { name: "C++", icon: Cplusplus },
-    { name: "Python", icon: Python },
-    { name: "C", icon: CLang },
-    { name: "JavaScript", icon: Javascript },
-    { name: "Java", icon: Java },
-    { name: "MySQL", icon: Mysql },
-    { name: "PyTorch", icon: Pytorch },
-    { name: "TensorFlow", icon: Tensorflow },
-    { name: "Hugging Face", icon: Huggingface },
-    { name: "LangChain", icon: Langchain },
-    { name: "OpenCV", icon: Opencv },
-    { name: "FastAPI", icon: Fastapi },
-    { name: "Node.js", icon: Nodejs },
-    { name: "Express", icon: Express },
-    { name: "React", icon: ReactLight },
-    { name: "GraphQL", icon: Graphql },
-    { name: "MongoDB", icon: Mongodb },
-    { name: "Redis", icon: Redis },
-    { name: "ElasticSearch", icon: Elasticsearch },
-    { name: "AWS", icon: Aws },
-    { name: "Google Cloud", icon: Googlecloud },
-    { name: "Docker", icon: Docker },
-    { name: "Git", icon: Git },
-    { name: "Linux", icon: Linux },
-    { name: "Postman", icon: Postman },
-    { name: "Qt", icon: Qt },
-    { name: "OpenGL", icon: Opengl },
-    { name: "CMake", icon: Cmake },
+  timezone: "Asia/Kolkata",
+  timezoneLabel: "IST",
+  stack: [
+    {
+      label: "Languages",
+      items: [
+        { name: "C++", icon: Cplusplus },
+        { name: "Python", icon: Python },
+        { name: "C", icon: CLang },
+        { name: "JavaScript", icon: Javascript },
+        { name: "Java", icon: Java },
+        { name: "MySQL", icon: Mysql },
+      ],
+    },
+    {
+      label: "AI / ML",
+      items: [
+        { name: "PyTorch", icon: Pytorch },
+        { name: "TensorFlow", icon: Tensorflow },
+        { name: "Hugging Face", icon: Huggingface },
+        { name: "LangChain", icon: Langchain },
+        { name: "OpenCV", icon: Opencv },
+      ],
+    },
+    {
+      label: "Backend & web",
+      items: [
+        { name: "FastAPI", icon: Fastapi },
+        { name: "Node.js", icon: Nodejs },
+        { name: "Express", icon: Express },
+        { name: "React", icon: ReactLight },
+        { name: "GraphQL", icon: Graphql },
+      ],
+    },
+    {
+      label: "Data stores",
+      items: [
+        { name: "MongoDB", icon: Mongodb },
+        { name: "Redis", icon: Redis },
+        { name: "ElasticSearch", icon: Elasticsearch },
+      ],
+    },
+    {
+      label: "Cloud & tooling",
+      items: [
+        { name: "AWS", icon: Aws },
+        { name: "Google Cloud", icon: Googlecloud },
+        { name: "Docker", icon: Docker },
+        { name: "Git", icon: Git },
+        { name: "Linux", icon: Linux },
+        { name: "Postman", icon: Postman },
+      ],
+    },
+    {
+      label: "Systems & graphics",
+      items: [
+        { name: "Qt", icon: Qt },
+        { name: "OpenGL", icon: Opengl },
+        { name: "CMake", icon: Cmake },
+      ],
+    },
   ],
+  // the "now" bullets on the home page
+  now: [
+    {
+      icon: ScanLine,
+      lead: "I track vertebrae in live X-ray",
+      body: "at HTIC, IIT Madras: camera calibration, C-arm geometry and 2D-to-3D registration, in production C++.",
+    },
+    {
+      icon: ChartCandlestick,
+      lead: "I build agents that trade",
+      body: "Sally reasons over live market data on an MCP architecture and executes in under 100ms, with a human in the loop.",
+    },
+    {
+      icon: Send,
+      lead: "Right now I'm shipping platforms end to end",
+      body: "ScalePath, VG INNFRA and Social_buzzz18, from the data model to the screens people use.",
+    },
+  ],
+  quote: {
+    text: "Make it work, make it right, make it fast.",
+    author: "Kent Beck",
+  },
   navbar: [
     { href: "/", icon: HomeIcon, label: "Home" },
     { href: "/blog", icon: NotebookIcon, label: "Blog" },
@@ -194,6 +256,7 @@ export const DATA = {
   projects: [
     {
       title: "Sally AI Trading System",
+      tagline: "Multi-agent trading on MCP, sub-100ms",
       href: "https://imperialx.io",
       dates: "August 2025 - Present",
       active: true,
@@ -206,6 +269,7 @@ export const DATA = {
     },
     {
       title: "ScalePath",
+      tagline: "Takes founders from idea to investment ready",
       href: "https://scalepath.in/",
       dates: "2026 - Present",
       active: true,
@@ -218,6 +282,7 @@ export const DATA = {
     },
     {
       title: "VG INNFRA",
+      tagline: "Website, automations and CRM for a developer",
       href: "https://www.vginnfra.com/",
       dates: "2026 - Present",
       active: true,
@@ -230,6 +295,7 @@ export const DATA = {
     },
     {
       title: "Social_buzzz18",
+      tagline: "Studio site plus a college and a school",
       href: "https://socialbuzzz18.in/",
       dates: "2026 - Present",
       active: true,
@@ -242,6 +308,7 @@ export const DATA = {
     },
     {
       title: "Real-Time Spine Tracking System",
+      tagline: "2D/3D vertebra tracking for surgery",
       href: "",
       dates: "February 2026 - Present",
       active: true,
@@ -254,6 +321,7 @@ export const DATA = {
     },
     {
       title: "3D Exoplanet & Solar System Explorer",
+      tagline: "NASA Space Apps: 5,000+ bodies in WebGL",
       href: "https://paradox974333.github.io/nasaspaceapp/",
       dates: "October 2024",
       active: false,
@@ -269,6 +337,7 @@ export const DATA = {
     },
     {
       title: "Neural Transliteration System",
+      tagline: "Seq2Seq transliteration past 92% accuracy",
       href: "",
       dates: "2025",
       active: false,
@@ -281,6 +350,7 @@ export const DATA = {
     },
     {
       title: "Camera Radial Distortion Calibration",
+      tagline: "Lens calibration under 0.5px error",
       href: "",
       dates: "2026",
       active: false,
