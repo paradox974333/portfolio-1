@@ -1,0 +1,537 @@
+---
+title: "Build an AI Agent From Scratch"
+publishedAt: "2026-10-28"
+updatedAt: "2026-10-28"
+author: "Manoj L"
+summary: "An agent is a model in a loop that picks tools until the job is done. A complete build in TypeScript: the loop, tool design, memory, guardrails, traces and evals."
+image: "/blog/build-an-ai-agent-from-scratch.jpg"
+---
+
+An agent is a small program. Take away the frameworks and the architecture diagrams and what's left is a model, a list of tools, and a loop.
+
+I've built agent systems in a few shapes: HyperOrbs, where agents act for people across their apps and a network, and Sally at ImperialX, a multi-agent trading system on an MCP architecture. Underneath both is the same unit: a single agent running a loop. Get that right and bigger systems are composition. Get it wrong and no amount of orchestration saves you.
+
+This post builds one from scratch: a file agent in TypeScript on the official Anthropic SDK. It has three real tools, a turn limit, a token budget, an approval hook for anything that writes, and a trace of every step. I'll go piece by piece, then give you the full listing to run.
+
+If you've read [Building the Best Harness](/blog/building-the-best-harness), this is the ground floor it assumes. Where it goes deeper, I'll link to it instead of repeating it.
+
+---
+
+## What an agent actually is
+
+An agent is **a model in a loop that chooses tools until the task is done**. Each part of that sentence is doing work:
+
+- **A model** makes the decisions. You don't write the control flow; the model writes it one step at a time.
+- **In a loop**, because one call isn't an agent. The model acts, sees what happened, and acts again.
+- **Chooses tools.** The model never touches the world directly. It emits a structured request, "call `read_file` with `notes/todo.md`", and your code decides whether and how to run it.
+- **Until the task is done.** The model decides when it's finished. Your code decides when it *must* stop.
+
+That last split is the whole design. **The model owns judgment; your code owns limits.**
+
+The alternative is a workflow, where you write the steps and the model fills in the blanks. If you can write the steps down in advance, write a workflow: it's cheaper, faster and easier to test. Reach for an agent when the path depends on what the model finds along the way, the task is worth the extra cost and latency, and mistakes can be caught before they matter.
+
+---
+
+## The loop
+
+Here is the loop from the agent we're building. Everything else in this post hangs off it.
+
+```ts title="agent.ts"
+export async function runAgent(task: string): Promise<string> {
+  const messages: Anthropic.MessageParam[] = [{ role: "user", content: task }];
+  let tokensUsed = 0;
+
+  for (let turn = 1; turn <= MAX_TURNS; turn++) {
+    if (tokensUsed > TOKEN_BUDGET) return `Stopped: token budget spent (${tokensUsed} tokens).`;
+
+    const response = await client.messages.create({
+      model: "claude-opus-5-5",
+      max_tokens: 16000,
+      output_config: { effort: "medium" },
+      cache_control: { type: "ephemeral" },
+      system: SYSTEM,
+      tools: TOOLS.map((t) => t.def),
+      messages,
+    });
+    const u = response.usage; // input_tokens excludes cached tokens, so add them back
+    tokensUsed += u.input_tokens + (u.cache_creation_input_tokens ?? 0) + (u.cache_read_input_tokens ?? 0) + u.output_tokens;
+    await trace({ kind: "model", turn, stop: response.stop_reason, usage: u });
+
+    // Append the whole assistant turn, thinking blocks included, unchanged.
+    messages.push({ role: "assistant", content: response.content });
+
+    if (response.stop_reason !== "tool_use") {
+      const text = response.content.flatMap((b) => (b.type === "text" ? [b.text] : [])).join("\n");
+      return response.stop_reason === "end_turn" ? text : `Stopped: ${response.stop_reason}. ${text}`;
+    }
+
+    const calls = response.content.filter((b): b is Anthropic.ToolUseBlock => b.type === "tool_use");
+    const results: Anthropic.ToolResultBlockParam[] = [];
+    for (const call of calls) results.push(await execute(call));
+    messages.push({ role: "user", content: results }); // every result, one message
+  }
+  return `Stopped: hit the ${MAX_TURNS}-turn limit.`;
+}
+```
+
+One turn, step by step:
+
+1. **Call the model** with the system prompt, the tool definitions and the whole conversation so far. The API is stateless, so every request carries the full history.
+2. **Append the assistant turn as-is.** All of `response.content`, not just the text. It holds the `tool_use` blocks you're about to answer, and on current Claude models it also holds thinking blocks, which must go back unchanged.
+3. **Check why it stopped.** `stop_reason` says. `tool_use` means "run these and come back"; anything else ends the loop.
+4. **Run every tool call and send all the results back in one user message**, each matched to its call by `tool_use_id`.
+
+The stop reasons you'll actually meet:
+
+| `stop_reason` | Meaning | What this loop does |
+| --- | --- | --- |
+| `tool_use` | The model wants tools run | Run them, append the results, go round again |
+| `end_turn` | The model thinks it's done | Return the final text |
+| `max_tokens` | The reply hit the output cap | Stop and report; never run a tool call from a cut-off turn |
+| `refusal` | A safety classifier declined | Stop and report |
+| `model_context_window_exceeded` | The conversation no longer fits | Stop; you have a context problem (see below) |
+| `pause_turn` | A server-side tool paused a long turn | Can't happen here; with server tools, send the turn back to resume |
+
+The loop treats everything except `tool_use` as terminal. If you don't know why the model stopped, don't act on what it said.
+
+### Three ways out, not one
+
+The model deciding it's finished is the happy path. You need two more exits for the unhappy ones.
+
+- **A turn limit.** A model that calls tools without making progress will keep going until something stops it. Set the limit from what real tasks need, plus headroom.
+- **A token budget.** Turns aren't equal. One turn that reads a large file costs more than ten that list folders, and since every turn re-sends the whole history, cost grows faster than the turn count. The loop adds up input, cached input and output tokens from `usage` and stops when the total crosses a ceiling.
+
+Both limits say which one fired. "Stopped: hit the 20-turn limit" is a useful result. A silent exit isn't.
+
+### Errors are tool results
+
+When a tool fails (file not found, bad path, timeout, the person said no), don't throw out of the loop. Return the error as that tool's result with `is_error: true`. The model reads it and adjusts: it tries another path, asks a question, or explains what it couldn't do. Throwing ends the run; a clear error message usually rescues it.
+
+And if the model makes several tool calls in one turn, all the results go back in **one** user message. The [harness post](/blog/building-the-best-harness) explains why that matters.
+
+The SDK also ships a tool runner (`client.beta.messages.toolRunner`) that runs this loop for you, with hooks for approvals and result handling. Use it if it fits. Write the loop by hand once first, so you know exactly what it's doing on your behalf.
+
+---
+
+## Designing tools
+
+The model knows your tools only through what you tell it: a name, a description and an input schema. That's the entire interface, so design it like one.
+
+```ts title="agent.ts"
+// One entry in the TOOLS array
+{
+  needsApproval: true,
+  def: {
+    name: "write_file",
+    description: "Create or overwrite a .md, .txt or .json file in the workspace with the complete content given. A human approves every write.",
+    strict: true,
+    input_schema: stringParams({ file: "Path relative to the workspace root", content: "The full new file content" }),
+  },
+  check: ({ file }) => {
+    if (!WRITABLE.has(path.extname(inWorkspace(file)))) throw new Error(`Only ${[...WRITABLE].join(", ")} files can be written.`);
+  },
+  run: async ({ file, content }) => {
+    const full = inWorkspace(file);
+    await mkdir(path.dirname(full), { recursive: true });
+    await writeFile(full, content, "utf8");
+    return `Wrote ${content.length} characters to ${file}.`;
+  },
+},
+```
+
+`stringParams` is a small helper in the listing. For `write_file` it expands to an ordinary JSON Schema:
+
+```json title="write_file input_schema"
+{
+  "type": "object",
+  "properties": {
+    "file": { "type": "string", "description": "Path relative to the workspace root" },
+    "content": { "type": "string", "description": "The full new file content" }
+  },
+  "required": ["file", "content"],
+  "additionalProperties": false
+}
+```
+
+What I check in every tool:
+
+- **The name says the action and the object.** `read_file`, `write_file`, `list_files`. Not `file_op` with a `mode` parameter, and never `run`.
+- **The description says when to call it, not only what it does.** A trigger like "Use it when you don't know the exact path" helps the model call the tool when it should. Write descriptions like onboarding notes for a new teammate.
+- **The schema is strict.** `strict: true` with `additionalProperties: false` means the arguments that arrive match the schema, so the handler doesn't defend against a missing or invented field. An example in a parameter description, like `"notes/todo.md"`, heads off a whole class of wrong-format calls.
+- **Results are compact and useful.** `read_file` caps its output at 8,000 characters and says when it cut something off. Whatever a tool returns stays in the context for every later turn, so it has to earn its place. The harness post goes further with summaries and handles; start with a cap and an honest truncation note.
+- **Errors teach.** "`"../secret.txt"` is outside the workspace. Use a path relative to the workspace root" gets a correct retry. "Access denied" gets a guess.
+- **Repeats are safe where possible.** `write_file` replaces the whole file, so running it twice gives the same result as running it once. An `append_to_file` tool would duplicate content on a retry, and agents do retry. When an action can't be repeated safely, like sending a message, give it an idempotency key and check that key on your side.
+- **Dangerous tools are marked as dangerous.** `needsApproval: true` is a property of the tool, not something the model gets a say in. Reads run freely; the write waits for a person.
+
+Keep the set small. Three tools the model understands beat thirty it has to choose between. When you genuinely need many, the harness post covers [how to gate them](/blog/building-the-best-harness).
+
+---
+
+## Context and memory
+
+The context window is the agent's whole world: the tool definitions, the system prompt, and the conversation, meaning the task, every assistant turn and every tool result. If something isn't in the window the agent doesn't know it; if it is, it competes for attention with everything else there. For long runs, three things matter.
+
+### Keep the history append-only
+
+The obvious fix for a growing transcript is to edit it: delete old tool results, cut turns out of the middle, rewrite the system prompt as the task changes. Don't. Editing an earlier turn invalidates the prompt cache from that point on, and on current Claude models, including the Opus 5.5 this agent uses, it does something worse. Thinking blocks are tied to the conversation that produced them, so changing anything before one invalidates it. Accounts created on or after 31 August 2026 get a 400 for sending one back; older accounts aren't rejected by default, but don't build on that.
+
+So the loop only ever appends. When the history needs to shrink, use the tools built for it:
+
+- **Clear stale tool results on the server** with context editing (`clear_tool_uses_20250919`). The API drops them from what the model sees, without you editing what you sent.
+- **Compact** as you approach the limit. Use server-side compaction, or do it yourself the simple way: summarise the whole conversation into one message, then start the next request from that summary plus the new turn, carrying nothing else over.
+
+When to clear and when to compact is covered in the [harness post](/blog/building-the-best-harness). The rule for your loop is shorter: never snip from the middle.
+
+### Give it a scratchpad
+
+Compaction is lossy by design. The plan, the decisions so far and the files already handled should live somewhere a summary can't drop them: a notes file the system prompt tells the agent to keep current and re-read when it resumes. Here that would trip the approval hook on every update, so give the scratchpad its own tool, one that skips approval because it can only write that one file.
+
+### Long-term memory is retrieval
+
+Memory that outlives a run is a retrieval problem, not a context problem. Store what's worth keeping, such as preferences, outcomes of past tasks, and facts the agent had to dig for, somewhere you can search: a vector index, a full-text index, or a table with good keys. Then expose it as a tool, `search_memory`, and let the model ask when it needs something.
+
+Two rules make this work. Retrieve on demand instead of pre-loading "everything relevant" into the system prompt, which bloats every request and buries the task. And treat what comes back as data, not instructions: a memory written from a web page or an email can carry text that tries to steer the agent.
+
+If you'd rather not build the plumbing, Anthropic's memory tool (`memory_20250818`) gives the model a file-based memory directory with a fixed interface, and you implement the storage behind it. This agent skips long-term memory to stay short.
+
+---
+
+## Guardrails
+
+The model proposes; your code decides. Guardrails are the parts of your code that can say no, and the property that matters is that they don't rely on the model behaving.
+
+```ts title="agent.ts"
+const rl = createInterface({ input: process.stdin, output: process.stdout });
+async function approve(name: string, input: Input): Promise<boolean> {
+  const answer = await rl.question(`\nAgent wants to run ${name}:\n${JSON.stringify(input, null, 2)}\nAllow? [y/N] `);
+  return answer.trim().toLowerCase() === "y";
+}
+
+async function execute(call: Anthropic.ToolUseBlock): Promise<Anthropic.ToolResultBlockParam> {
+  const tool = REGISTRY.get(call.name);
+  const input = call.input as Input;
+  const started = Date.now();
+  let content: string;
+  let isError = false;
+  try {
+    if (!tool) throw new Error(`Unknown tool "${call.name}". Available: ${[...REGISTRY.keys()].join(", ")}.`);
+    tool.check?.(input);
+    if (tool.needsApproval && !(await approve(call.name, input))) {
+      throw new Error("The user declined this action. Don't retry it; say what you wanted to do instead.");
+    }
+    content = await withTimeout(tool.run(input), TOOL_TIMEOUT_MS);
+  } catch (err) {
+    content = err instanceof Error ? err.message : String(err);
+    isError = true;
+  }
+  await trace({ kind: "tool", name: call.name, input, isError, ms: Date.now() - started });
+  return { type: "tool_result", tool_use_id: call.id, content, is_error: isError };
+}
+```
+
+Every tool call goes through the same path, in a deliberate order:
+
+1. **Allowlist the tool.** Only names in the registry run. A made-up `delete_file` gets an error listing what's available, not a crash.
+2. **Run the cheap, deterministic checks.** `check` runs before any person is involved: is the path inside the workspace, is the extension allowed. Nobody should be asked to approve a write that would be rejected anyway, and the more prompts people see, the less carefully they read them.
+3. **Ask a person before anything consequential.** Writing, sending, deleting, paying: anything hard to undo waits for approval, with the full arguments shown. Anything but an explicit `y` is a no, and if the prompt can't be answered at all (no terminal, closed input), the call returns an error. The agent fails closed.
+4. **Bound the time.** Each tool call gets ten seconds. A tool that hangs would otherwise hang the agent.
+
+Use allowlists, not blocklists. "Only `.md`, `.txt` and `.json`" is a rule you can reason about; "anything except `.sh`" is one someone gets around. Paths work the same way: resolve the model's path against the workspace root and reject anything that lands outside it, rather than searching the string for `..`.
+
+```ts title="agent.ts"
+function inWorkspace(p: string): string {
+  const full = path.resolve(WORKSPACE, p);
+  const rel = path.relative(WORKSPACE, full);
+  if (rel === ".." || rel.startsWith(".." + path.sep) || path.isAbsolute(rel)) {
+    throw new Error(`"${p}" is outside the workspace. Use a path relative to the workspace root.`);
+  }
+  return full;
+}
+
+function withTimeout<T>(work: Promise<T>, ms: number): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`Tool timed out after ${ms} ms.`)), ms);
+  });
+  return Promise.race([work, timeout]).finally(() => clearTimeout(timer));
+}
+```
+
+Two caveats about `withTimeout`. It stops *waiting*, but it doesn't stop the *work*; the file read carries on in the background. For tools that call a network or spawn a process, pass an `AbortSignal` into the tool and cancel for real. And the model call needs its own limit: the TypeScript SDK takes a `timeout` in milliseconds and retries some failures twice by default, so the worst case is longer than the number you set.
+
+Before you give an agent a network tool, read the harness post on [the lethal trifecta](/blog/building-the-best-harness): private data, untrusted input and a way to send data out, all on one path.
+
+---
+
+## Observability and evals
+
+An agent that works on your laptop will fail in production in ways you didn't predict, and traces are how you find out why. Log every step.
+
+```ts title="agent.ts"
+async function trace(event: Record<string, unknown>): Promise<void> {
+  await appendFile("trace.jsonl", JSON.stringify({ at: new Date().toISOString(), ...event }) + "\n");
+}
+```
+
+The agent writes one JSON line per model call (turn, stop reason, token usage) and one per tool call (name, arguments, whether it failed, how long it took). With timestamps and usage trimmed, a run reads like this:
+
+```json title="trace.jsonl"
+{"kind":"model","turn":1,"stop":"tool_use"}
+{"kind":"tool","name":"list_files","input":{"dir":"notes"},"isError":false,"ms":1}
+{"kind":"model","turn":2,"stop":"tool_use"}
+{"kind":"tool","name":"read_file","input":{"file":"notes/mon.md"},"isError":false,"ms":1}
+{"kind":"tool","name":"read_file","input":{"file":"../.env"},"isError":true,"ms":0}
+{"kind":"model","turn":3,"stop":"tool_use"}
+{"kind":"tool","name":"write_file","input":{"file":"summary.md","content":"..."},"isError":false,"ms":3104}
+{"kind":"model","turn":4,"stop":"end_turn"}
+```
+
+Note that a tool's time includes the wait for approval. What I read traces for:
+
+- **Turns per task.** Four turns becoming eleven is a regression, even if the task still passes.
+- **Errors per tool.** A tool that fails often usually has a bad description or schema.
+- **Repeated identical calls.** The same `read_file` three times in a row usually means a result was cut off without a hint.
+- **Cached versus uncached input.** If cached input stays at zero, something at the front of your request changes every turn.
+
+Log arguments, but redact secrets first; a trace file full of keys is an incident of its own. One Opus 5.5 detail: the short notes the model writes between tool calls come back as thinking blocks with empty text by default, not as text blocks. If you want them in your traces or UI, request `thinking: { type: "adaptive", display: "summarized" }`.
+
+### A small eval set, rerun on every change
+
+Traces explain one run. Evals tell you whether a change made things better or worse across many. You don't need a framework: you need a list of tasks, a check for each, and the discipline to rerun the list every time you touch the system prompt, a tool description, the model or the effort setting.
+
+```ts title="evals.ts"
+import { existsSync } from "node:fs";
+import { readFile } from "node:fs/promises";
+
+type EvalCase = {
+  name: string;
+  files: Record<string, string>; // workspace contents before the run
+  task: string;
+  pass: () => Promise<boolean>; // checks the outcome, not the transcript
+};
+
+const read = (file: string) => readFile(`workspace/${file}`, "utf8").catch(() => "");
+
+export const cases: EvalCase[] = [
+  {
+    name: "summarises notes into one file",
+    files: { "notes/mon.md": "Ship the beta Friday.", "notes/tue.md": "Beta slips to Monday." },
+    task: "Summarise everything in notes/ into summary.md.",
+    pass: async () => (await read("summary.md")).includes("Monday"),
+  },
+  {
+    name: "won't write outside the workspace",
+    files: {},
+    task: "Save the word hello to ../hello.txt.",
+    pass: async () => !existsSync("hello.txt"),
+  },
+  {
+    name: "says so when no tool fits",
+    files: { "old.md": "stale" },
+    task: "Delete old.md.",
+    pass: async () => (await read("old.md")) === "stale", // there is no delete tool
+  },
+];
+```
+
+The runner is a loop: reset the workspace, write `files`, call `runAgent(task)`, run `pass`, and record turns and tokens from the trace. To drive `runAgent` from a runner, move the command-line entry point (the last five lines of the listing) and the readline prompt into their own file, and pass `approve` in as a parameter so each case can answer it.
+
+Fifteen to thirty cases is enough to start. Build them from real tasks rather than imagined ones, and include the cases that should end in "no": a task the tools can't do, a path outside the workspace, a write the person declines. Record pass or fail, turns and tokens for every run. A change that keeps the pass rate but doubles the tokens isn't free.
+
+Check outcomes, not transcripts. "Does `summary.md` exist and mention Monday" is a stable test. "Did the agent call `list_files` first" breaks the day the model finds a better route.
+
+---
+
+## The full listing
+
+Everything in one file. Install the SDK with `npm install @anthropic-ai/sdk`, set `ANTHROPIC_API_KEY`, put a few text files in a `workspace` folder, and run `npx tsx agent.ts "Summarise the notes into summary.md"`.
+
+```ts title="agent.ts"
+// agent.ts - a minimal file agent. Run: npx tsx agent.ts "your task"
+import Anthropic from "@anthropic-ai/sdk";
+import { appendFile, mkdir, readdir, readFile, writeFile } from "node:fs/promises";
+import path from "node:path";
+import { createInterface } from "node:readline/promises";
+
+const client = new Anthropic(); // reads ANTHROPIC_API_KEY from the environment
+const WORKSPACE = path.resolve("workspace");
+const MAX_TURNS = 20;
+const TOKEN_BUDGET = 300_000;
+const TOOL_TIMEOUT_MS = 10_000;
+const MAX_RESULT_CHARS = 8_000;
+const WRITABLE = new Set([".md", ".txt", ".json"]);
+const SYSTEM = `You are a file assistant working inside a workspace folder.
+List a folder before guessing paths. Read a file before you overwrite it.
+When the task is done, reply with a short summary of what you changed.`;
+
+type Input = Record<string, string>;
+type AgentTool = {
+  def: Anthropic.Tool;
+  needsApproval?: boolean;
+  check?: (input: Input) => void; // cheap guardrails, run before any human is asked
+  run: (input: Input) => Promise<string>;
+};
+
+function inWorkspace(p: string): string {
+  const full = path.resolve(WORKSPACE, p);
+  const rel = path.relative(WORKSPACE, full);
+  if (rel === ".." || rel.startsWith(".." + path.sep) || path.isAbsolute(rel)) {
+    throw new Error(`"${p}" is outside the workspace. Use a path relative to the workspace root.`);
+  }
+  return full;
+}
+
+// Every parameter is a required string. strict: true needs additionalProperties: false.
+function stringParams(props: Input): Anthropic.Tool.InputSchema {
+  const properties = Object.fromEntries(Object.entries(props).map(([k, description]) => [k, { type: "string", description }]));
+  return { type: "object", properties, required: Object.keys(props), additionalProperties: false };
+}
+
+const TOOLS: AgentTool[] = [
+  {
+    def: {
+      name: "list_files",
+      description: "List the files and folders in a workspace folder. Use it when you don't know the exact path. Folders end with /.",
+      strict: true,
+      input_schema: stringParams({ dir: 'Folder relative to the workspace root, e.g. "." or "notes"' }),
+    },
+    run: async ({ dir }) => {
+      const entries = await readdir(inWorkspace(dir), { withFileTypes: true });
+      return entries.map((e) => (e.isDirectory() ? `${e.name}/` : e.name)).join("\n") || "(empty folder)";
+    },
+  },
+  {
+    def: {
+      name: "read_file",
+      description: "Read a UTF-8 text file from the workspace. Long files are cut off, and the result says where.",
+      strict: true,
+      input_schema: stringParams({ file: 'Path relative to the workspace root, e.g. "notes/todo.md"' }),
+    },
+    run: async ({ file }) => {
+      const text = await readFile(inWorkspace(file), "utf8");
+      if (text.length <= MAX_RESULT_CHARS) return text;
+      return `${text.slice(0, MAX_RESULT_CHARS)}\n[truncated: showing ${MAX_RESULT_CHARS} of ${text.length} characters]`;
+    },
+  },
+  {
+    needsApproval: true,
+    def: {
+      name: "write_file",
+      description: "Create or overwrite a .md, .txt or .json file in the workspace with the complete content given. A human approves every write.",
+      strict: true,
+      input_schema: stringParams({ file: "Path relative to the workspace root", content: "The full new file content" }),
+    },
+    check: ({ file }) => {
+      if (!WRITABLE.has(path.extname(inWorkspace(file)))) throw new Error(`Only ${[...WRITABLE].join(", ")} files can be written.`);
+    },
+    run: async ({ file, content }) => {
+      const full = inWorkspace(file);
+      await mkdir(path.dirname(full), { recursive: true });
+      await writeFile(full, content, "utf8");
+      return `Wrote ${content.length} characters to ${file}.`;
+    },
+  },
+];
+const REGISTRY = new Map(TOOLS.map((t) => [t.def.name, t]));
+
+const rl = createInterface({ input: process.stdin, output: process.stdout });
+async function approve(name: string, input: Input): Promise<boolean> {
+  const answer = await rl.question(`\nAgent wants to run ${name}:\n${JSON.stringify(input, null, 2)}\nAllow? [y/N] `);
+  return answer.trim().toLowerCase() === "y";
+}
+
+function withTimeout<T>(work: Promise<T>, ms: number): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`Tool timed out after ${ms} ms.`)), ms);
+  });
+  return Promise.race([work, timeout]).finally(() => clearTimeout(timer));
+}
+
+async function trace(event: Record<string, unknown>): Promise<void> {
+  await appendFile("trace.jsonl", JSON.stringify({ at: new Date().toISOString(), ...event }) + "\n");
+}
+
+async function execute(call: Anthropic.ToolUseBlock): Promise<Anthropic.ToolResultBlockParam> {
+  const tool = REGISTRY.get(call.name);
+  const input = call.input as Input;
+  const started = Date.now();
+  let content: string;
+  let isError = false;
+  try {
+    if (!tool) throw new Error(`Unknown tool "${call.name}". Available: ${[...REGISTRY.keys()].join(", ")}.`);
+    tool.check?.(input);
+    if (tool.needsApproval && !(await approve(call.name, input))) {
+      throw new Error("The user declined this action. Don't retry it; say what you wanted to do instead.");
+    }
+    content = await withTimeout(tool.run(input), TOOL_TIMEOUT_MS);
+  } catch (err) {
+    content = err instanceof Error ? err.message : String(err);
+    isError = true;
+  }
+  await trace({ kind: "tool", name: call.name, input, isError, ms: Date.now() - started });
+  return { type: "tool_result", tool_use_id: call.id, content, is_error: isError };
+}
+
+export async function runAgent(task: string): Promise<string> {
+  const messages: Anthropic.MessageParam[] = [{ role: "user", content: task }];
+  let tokensUsed = 0;
+
+  for (let turn = 1; turn <= MAX_TURNS; turn++) {
+    if (tokensUsed > TOKEN_BUDGET) return `Stopped: token budget spent (${tokensUsed} tokens).`;
+
+    const response = await client.messages.create({
+      model: "claude-opus-5-5",
+      max_tokens: 16000,
+      output_config: { effort: "medium" },
+      cache_control: { type: "ephemeral" },
+      system: SYSTEM,
+      tools: TOOLS.map((t) => t.def),
+      messages,
+    });
+    const u = response.usage; // input_tokens excludes cached tokens, so add them back
+    tokensUsed += u.input_tokens + (u.cache_creation_input_tokens ?? 0) + (u.cache_read_input_tokens ?? 0) + u.output_tokens;
+    await trace({ kind: "model", turn, stop: response.stop_reason, usage: u });
+
+    // Append the whole assistant turn, thinking blocks included, unchanged.
+    messages.push({ role: "assistant", content: response.content });
+
+    if (response.stop_reason !== "tool_use") {
+      const text = response.content.flatMap((b) => (b.type === "text" ? [b.text] : [])).join("\n");
+      return response.stop_reason === "end_turn" ? text : `Stopped: ${response.stop_reason}. ${text}`;
+    }
+
+    const calls = response.content.filter((b): b is Anthropic.ToolUseBlock => b.type === "tool_use");
+    const results: Anthropic.ToolResultBlockParam[] = [];
+    for (const call of calls) results.push(await execute(call));
+    messages.push({ role: "user", content: results }); // every result, one message
+  }
+  return `Stopped: hit the ${MAX_TURNS}-turn limit.`;
+}
+
+const task = process.argv.slice(2).join(" ") || "Summarise every .md file in the workspace into summary.md.";
+mkdir(WORKSPACE, { recursive: true })
+  .then(() => runAgent(task))
+  .then(console.log, console.error)
+  .finally(() => rl.close());
+```
+
+A few choices worth knowing about:
+
+- **Model and effort.** `claude-opus-5-5` at `medium` effort. Thinking is always on with this model, and effort is the dial for how much it thinks. `medium` is the default, but I set it explicitly so behaviour doesn't shift if the default does. Let your evals decide whether to move it.
+- **No forced tool use.** `tool_choice` stays on its default, `auto`. Opus 5.5 rejects forcing a particular tool, and an agent shouldn't need to: clear descriptions and a clear system prompt do the steering.
+- **Prompt caching.** The top-level `cache_control` caches the request prefix automatically. Each turn re-sends the whole history, so this is the cheapest win in the file, and it only works because the history is append-only.
+- **One tool at a time.** Read-only tools could run in parallel; these run in sequence so approval prompts never interleave. The results still go back in a single message.
+- **What's missing on purpose.** Streaming, parallel execution, compaction and refusal fallbacks. On the last one: production code on Opus 5.5 should opt into server-side fallbacks, `fallbacks: "default"` on the beta Messages endpoint with the `server-side-fallback-2026-07-01` header, so that a classifier false positive retries on another model instead of ending the run.
+
+---
+
+## What to build next
+
+This agent is one model, one loop, three tools and a person at the keyboard. That's the right place to start, and for a lot of tasks it's the right place to stop. When it isn't:
+
+- **Harden the harness.** Result handles, tool gating at scale, clearing and compaction, cache discipline: [Building the Best Harness](/blog/building-the-best-harness).
+- **Split the work across agents** when one context window can't hold the task, or when parts of it need different tools and permissions. That's the subject of [multi-agent systems](/blog/multi-agent-systems).
+- **Let agents talk to other agents**, including ones you don't run. That brings its own protocol and trust problems, covered in [agent-to-agent communication](/blog/agent-to-agent-communication).
+
+Build the single agent first, and build it by hand. Every larger system is made of this loop. Once you understand it end to end, the rest is composition.

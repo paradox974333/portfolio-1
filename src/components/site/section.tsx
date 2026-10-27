@@ -13,6 +13,9 @@ type SectionProps = {
   children: React.ReactNode;
 };
 
+// Rhythm for every band on the page: a fixed 3rem gap above, a 44px header, and
+// content that starts and ends about the same distance from its rules. Lists of
+// rows sit flush under the header; free-form content pads itself with `pt-5 pb-4`.
 export function Section({
   id,
   label,
@@ -28,15 +31,16 @@ export function Section({
       id={id}
       data-ruler={label}
       aria-labelledby={`${id}-title`}
-      className={cn("relative mt-14", className)}
+      className={cn("relative mt-12", className)}
     >
-      <header className="flex items-baseline justify-between gap-4 border-y border-border bg-panel px-5 py-2.5 sm:px-8">
+      <header className="flex min-h-11 items-center justify-between gap-4 border-y border-border bg-panel px-5 py-2.5 sm:px-8">
         <h2
           id={`${id}-title`}
           className={cn(
+            // the serif title keeps the sans title's line box so every band is the same height
             serif
-              ? "font-serif text-[1.375rem] italic leading-tight"
-              : "text-[0.9375rem] font-semibold tracking-tight"
+              ? "font-serif text-[1.375rem] italic leading-[1.4rem]"
+              : "text-[0.9375rem] font-semibold leading-[1.4rem] tracking-tight"
           )}
         >
           {title ?? label}

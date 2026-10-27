@@ -1,6 +1,7 @@
 "use client";
 
 import { DATA } from "@/data/resume";
+import { cn } from "@/lib/utils";
 import { useEffect, useState } from "react";
 import { Section } from "./section";
 
@@ -25,7 +26,8 @@ function layout(days: Day[]) {
   const months: { col: number; label: string }[] = [];
   for (const cell of cells) {
     const date = new Date(cell.date);
-    if (date.getUTCDate() <= 7 && cell.row === 0 && cell.col > 0) {
+    // no label at either edge, where it would be clipped
+    if (date.getUTCDate() <= 7 && cell.row === 0 && cell.col > 0 && cell.col < WEEKS - 2) {
       months.push({ col: cell.col, label: MONTHS[date.getUTCMonth()] });
     }
   }
@@ -74,7 +76,7 @@ export function ContributionSection() {
       title="Commits this year"
       aside={data ? `${data.total.toLocaleString("en-US")} contributions` : undefined}
     >
-      <div className="px-5 py-6 sm:px-8">
+      <div className="px-5 pb-4 pt-5 sm:px-8">
         {failed ? (
           <p className="text-sm text-muted-foreground">
             The contribution graph didn&apos;t load. The same activity is on{" "}
@@ -84,19 +86,23 @@ export function ContributionSection() {
             .
           </p>
         ) : (
-          <figure aria-label={data ? `${data.total} GitHub contributions in the last year` : "Loading GitHub contributions"}>
+          <figure aria-busy={!data} aria-label={data ? `${data.total} GitHub contributions in the last year` : "Loading GitHub contributions"}>
             <div className="relative mb-1.5 h-4 text-[0.6875rem] text-muted-foreground">
-              {months.map((month) => (
+              {months.map((month, i) => (
                 <span
                   key={`${month.col}-${month.label}`}
-                  className="absolute"
+                  // phones get every other month so the labels never touch
+                  className={cn("absolute", i % 2 === 1 && "hidden sm:inline")}
                   style={{ left: `${(month.col / weeks) * 100}%` }}
                 >
                   {month.label}
                 </span>
               ))}
             </div>
-            <svg viewBox={`0 0 ${width} ${7 * CELL}`} className="block h-auto w-full">
+            <svg
+              viewBox={`0 0 ${width} ${7 * CELL}`}
+              className={cn("block h-auto w-full", !data && "motion-safe:animate-pulse")}
+            >
               {cells.map((cell) => (
                 <circle
                   key={cell.date}

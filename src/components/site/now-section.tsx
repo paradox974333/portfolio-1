@@ -1,6 +1,7 @@
 "use client";
 
 import { DATA } from "@/data/resume";
+import { cn } from "@/lib/utils";
 import { useEffect, useState } from "react";
 import { Section } from "./section";
 
@@ -13,7 +14,8 @@ function greetingFor(hour: number) {
 }
 
 export function NowSection() {
-  const [greeting, setGreeting] = useState("Hello!");
+  // null until the reader's clock is known; the band holds its height meanwhile
+  const [greeting, setGreeting] = useState<string | null>(null);
 
   useEffect(() => {
     const frame = requestAnimationFrame(() =>
@@ -23,10 +25,25 @@ export function NowSection() {
   }, []);
 
   return (
-    <Section id="now" label="Now" title={greeting} serif>
-      <ul className="space-y-4 px-5 py-6 sm:px-8">
+    <Section
+      id="now"
+      label="Now"
+      serif
+      title={
+        // fades in once instead of swapping "Hello!" for the real greeting
+        <span
+          className={cn(
+            "motion-safe:transition-opacity motion-safe:duration-500",
+            greeting ? "opacity-100" : "opacity-0"
+          )}
+        >
+          {greeting ?? "Hello!"}
+        </span>
+      }
+    >
+      <ul className="space-y-4 px-5 pb-4 pt-5 sm:px-8">
         {DATA.now.map((item) => (
-          <li key={item.lead} className="relative pl-5 leading-relaxed text-muted-foreground">
+          <li key={item.lead} className="relative pl-5 text-[0.9375rem] leading-relaxed text-muted-foreground">
             <span
               aria-hidden
               className="absolute left-0.5 top-[0.7em] size-1.5 rounded-full bg-muted-foreground/60"

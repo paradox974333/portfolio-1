@@ -1,174 +1,96 @@
- 
 import { ImageResponse } from "next/og";
-import { DATA } from "@/data/resume";
+import { allPosts } from "content-collections";
+import { C, MonoLabel, OG_SIZE, OgFrame, formatOgDate, loadOgFonts } from "@/lib/og";
 
-export const runtime = "edge";
-
-export const alt = "Blog";
-export const size = {
-    width: 1200,
-    height: 630,
-};
+export const alt = "Writing by Manoj L: notes on building AI agents and the systems around them";
+export const size = OG_SIZE;
 export const contentType = "image/png";
 
-const getFontData = async () => {
-    try {
-        const [cabinetGrotesk, clashDisplay] = await Promise.all([
-            fetch(
-                new URL("../../../public/fonts/CabinetGrotesk-Medium.ttf", import.meta.url)
-            ).then((res) => res.arrayBuffer()),
-            fetch(
-                new URL("../../../public/fonts/ClashDisplay-Semibold.ttf", import.meta.url)
-            ).then((res) => res.arrayBuffer()),
-        ]);
-        return { cabinetGrotesk, clashDisplay };
-    } catch (error) {
-        console.error("Failed to load fonts:", error);
-        return null;
-    }
-};
-
-const styles = {
-    outerWrapper: {
-        height: "100%",
-        width: "100%",
-        display: "flex",
-        flexDirection: "column",
-        backgroundColor: "#ffffff",
-        position: "relative",
-    },
-    middleWrapper: {
-        height: "100%",
-        width: "100%",
-        display: "flex",
-        flexDirection: "column",
-        backgroundColor: "#ffffff",
-        position: "relative",
-        padding: "40px",
-    },
-    wrapper: {
-        height: "100%",
-        width: "100%",
-        display: "flex",
-        flexDirection: "column",
-        backgroundColor: "#fafafa",
-        position: "relative",
-        padding: "40px",
-        border: "1px solid #e5e5e5",
-        borderRadius: "12px",
-    },
-    imageSection: {
-        position: "absolute",
-        top: "40px",
-        left: "40px",
-        display: "flex",
-        alignItems: "center",
-        zIndex: "2",
-    },
-    mainContainer: {
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "flex-start",
-        justifyContent: "flex-end",
-        height: "100%",
-        width: "100%",
-        position: "relative",
-        zIndex: "1",
-    },
-    image: {
-        width: "140px",
-        height: "140px",
-        borderRadius: "24px",
-        border: "4px solid #e5e5e5",
-        objectFit: "cover",
-    },
-    title: {
-        fontFamily: "Clash Display",
-        fontSize: "48px",
-        fontWeight: "600",
-        lineHeight: "1.1",
-        textAlign: "left",
-        color: "#000000",
-        marginBottom: "16px",
-        letterSpacing: "-0.02em",
-        maxWidth: "900px",
-    },
-    description: {
-        fontSize: "20px",
-        fontWeight: "400",
-        lineHeight: "1.5",
-        textAlign: "left",
-        maxWidth: "800px",
-        color: "#404040",
-        marginBottom: "32px",
-        textWrap: "balance",
-    },
-} as const;
+const LEDE = "Notes on building AI agents and the systems around them.";
 
 export default async function Image() {
-    try {
-        const fontData = await getFontData();
-        const title = "Blog";
-        const description = "Thoughts on software development, life, and more.";
-        const imageUrl = DATA.avatarUrl
-            ? new URL(DATA.avatarUrl, DATA.url).toString()
-            : undefined;
+  const posts = [...allPosts].sort(
+    (a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime()
+  );
+  const latest = posts.slice(0, 3);
+  const count = `${posts.length} ${posts.length === 1 ? "post" : "posts"}`;
 
-        return new ImageResponse(
-            (
-                <div style={styles.outerWrapper}>
-                    <div style={styles.middleWrapper}>
-                        <div style={styles.wrapper}>
-                            {imageUrl && (
-                                <div style={styles.imageSection}>
-                                    <img src={imageUrl} alt="Blog" style={styles.image} />
-                                </div>
-                            )}
-                            <div style={styles.mainContainer}>
-                                <div style={styles.title}>{title}</div>
-                                {description && (
-                                    <div style={styles.description}>{description}</div>
-                                )}
-                            </div>
-                        </div>
-                    </div>
+  const fonts = await loadOgFonts(
+    ["Writing", LEDE, count, ...latest.map((post) => post.title)].join(" "),
+    ["sans400", "sans600", "sans700", "mono500", "serifItalic"]
+  );
+
+  return new ImageResponse(
+    (
+      <OgFrame crumb="Writing" aside={<MonoLabel color={C.muted}>{count}</MonoLabel>}>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "center",
+            flex: 1,
+            padding: "0 56px 24px",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              fontFamily: "Instrument Serif",
+              fontStyle: "italic",
+              fontSize: 128,
+              lineHeight: 0.95,
+              letterSpacing: "-0.02em",
+              color: C.text,
+            }}
+          >
+            Writing
+          </div>
+          <div style={{ display: "flex", marginTop: 22, fontSize: 32, color: C.muted, lineHeight: 1.35 }}>
+            {LEDE}
+          </div>
+        </div>
+
+        {latest.length ? (
+          <div
+            style={{
+              display: "flex",
+              height: 172,
+              flexShrink: 0,
+              backgroundColor: C.panel,
+              borderTop: `1px solid ${C.border}`,
+            }}
+          >
+            {latest.map((post, index) => (
+              <div
+                key={post._meta.path}
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  flex: 1,
+                  padding: `30px 28px 0 ${index === 0 ? 56 : 32}px`,
+                  borderLeft: index === 0 ? "none" : `1px solid ${C.border}`,
+                }}
+              >
+                <MonoLabel style={{ fontSize: 15 }}>{formatOgDate(post.publishedAt)}</MonoLabel>
+                <div
+                  style={{
+                    display: "block",
+                    marginTop: 12,
+                    fontSize: 24,
+                    fontWeight: 600,
+                    lineHeight: 1.3,
+                    color: C.text,
+                    lineClamp: 3,
+                  }}
+                >
+                  {post.title}
                 </div>
-            ),
-            {
-                ...size,
-                fonts: fontData
-                    ? [
-                        {
-                            name: "Cabinet Grotesk",
-                            data: fontData.cabinetGrotesk,
-                            weight: 400,
-                            style: "normal",
-                        },
-                        {
-                            name: "Cabinet Grotesk",
-                            data: fontData.cabinetGrotesk,
-                            weight: 700,
-                            style: "normal",
-                        },
-                        {
-                            name: "Clash Display",
-                            data: fontData.clashDisplay,
-                            weight: 600,
-                            style: "normal",
-                        },
-                    ]
-                    : undefined,
-            }
-        );
-    } catch (error) {
-        console.error("Error generating OpenGraph image:", error);
-        return new Response(
-            `Failed to generate image: ${error instanceof Error ? error.message : "Unknown error"}`,
-            {
-                status: 500,
-            }
-        );
-    }
+              </div>
+            ))}
+          </div>
+        ) : null}
+      </OgFrame>
+    ),
+    { ...size, fonts }
+  );
 }
-
-

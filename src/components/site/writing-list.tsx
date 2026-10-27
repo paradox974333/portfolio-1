@@ -10,7 +10,7 @@ export function WritingList() {
   );
 
   return (
-    <div className="py-2">
+    <div>
       <ul>
         {posts.slice(0, LIMIT).map((post) => {
           const slug = post._meta.path.replace(/\.mdx$/, "");
@@ -18,10 +18,10 @@ export function WritingList() {
             <li key={slug} className="border-b border-border last:border-b-0">
               <Link
                 href={`/blog/${slug}`}
-                className="group flex items-baseline gap-4 px-5 py-3.5 transition-colors hover:bg-panel sm:px-8"
+                className="group flex items-baseline gap-4 px-5 py-3.5 transition-colors hover:bg-panel focus-visible:bg-panel focus-visible:-outline-offset-2 sm:px-8"
               >
                 <span className="min-w-0 flex-1">
-                  <span className="block font-medium text-foreground">{post.title}</span>
+                  <span className="block text-[0.9375rem] font-medium text-foreground">{post.title}</span>
                   <span className="mt-0.5 line-clamp-1 text-sm text-muted-foreground">
                     {post.summary}
                   </span>
@@ -40,7 +40,7 @@ export function WritingList() {
       {posts.length > LIMIT && (
         <Link
           href="/blog"
-          className="block border-t border-border py-3 text-center text-sm text-muted-foreground transition-colors hover:text-foreground"
+          className="block border-t border-border py-3 text-center text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:-outline-offset-2"
         >
           All {posts.length} posts
         </Link>

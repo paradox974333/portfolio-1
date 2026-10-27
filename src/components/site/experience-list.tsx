@@ -12,19 +12,19 @@ import { ChevronDown } from "lucide-react";
 
 export function ExperienceList() {
   return (
-    <Accordion type="single" collapsible className="py-2">
+    <Accordion type="single" collapsible>
       {DATA.work.map((work) => (
         <AccordionItem
           key={work.company + work.title}
           value={work.company + work.title}
           className="border-b border-border last:border-b-0"
         >
-          <AccordionTrigger className="group min-w-0 gap-3 px-5 py-3 hover:bg-panel hover:no-underline sm:px-8 [&>svg]:hidden">
+          <AccordionTrigger className="group min-w-0 gap-3 px-5 py-3.5 text-[0.875rem] hover:bg-panel hover:no-underline focus-visible:bg-panel focus-visible:-outline-offset-2 sm:px-8 sm:text-[0.9375rem] [&>svg]:hidden">
             <span className="flex min-w-0 flex-1 items-center gap-3">
               <img
                 src={work.logoUrl}
                 alt=""
-                className="size-7 flex-none rounded-md bg-white object-contain p-0.5"
+                className="size-7 flex-none rounded-md bg-white object-contain p-0.5 ring-1 ring-border"
               />
               <span className="flex min-w-0 flex-col gap-x-2 sm:flex-row sm:items-baseline">
                 <span className="font-medium text-foreground">{work.company}</span>

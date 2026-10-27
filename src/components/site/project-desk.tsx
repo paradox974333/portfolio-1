@@ -2,8 +2,8 @@
 
 import { DATA } from "@/data/resume";
 import { cn } from "@/lib/utils";
-import { motion, useReducedMotion } from "motion/react";
-import { useRef, useState } from "react";
+import { MotionConfig, motion, useReducedMotion } from "motion/react";
+import { cloneElement, isValidElement, useRef, useState } from "react";
 import { BrowserShot, Polaroid } from "./desk-items";
 import { useFinePointer } from "./use-fine-pointer";
 
@@ -45,7 +45,7 @@ const ITEMS: {
     rotate: 1.5,
     wide: { left: 30, top: 19, width: 42 },
     narrow: { left: 13, top: 29, width: 74 },
-    art: <BrowserShot src="/shots/hyperorbs.jpg" address="hyperorbs.com" priority />,
+    art: <BrowserShot src="/shots/hyperorbs.jpg" address="hyperorbs.com" preload />,
   },
   {
     id: "lab",
@@ -62,6 +62,10 @@ const ITEMS: {
     art: <Polaroid src={DATA.avatarUrl} caption={DATA.name.split(" ")[0].toLowerCase()} />,
   },
 ];
+
+// the column tops out at 704px of desk; below sm the desk is the viewport minus gutters
+const sizesFor = (item: (typeof ITEMS)[number]) =>
+  `(min-width: 768px) ${Math.round(7.04 * item.wide.width)}px, (min-width: 640px) ${item.wide.width}vw, ${(item.narrow ?? item.wide).width}vw`;
 
 const spotVars = (item: (typeof ITEMS)[number]) =>
   ({
@@ -84,6 +88,8 @@ export function ProjectDesk() {
     setStack((order) => [...order.filter((item) => item !== id), id]);
 
   return (
+    // reduced motion is handled by hand below, so motion's own switch stays off
+    <MotionConfig reducedMotion="never">
     <div ref={desk} aria-hidden className="relative aspect-[5/4] w-full select-none sm:aspect-[2/1]">
       {ITEMS.map((item, index) => (
         <motion.div
@@ -94,22 +100,24 @@ export function ProjectDesk() {
             canDrag && "cursor-grab active:cursor-grabbing"
           )}
           style={{ ...spotVars(item), zIndex: stack.indexOf(item.id) + 1 }}
-          initial={
-            reduceMotion
-              ? false
-              : { opacity: 0, scale: 1.12, rotate: item.rotate - 6, y: -14 }
-          }
+          // the same hidden start on the server and the client (branching on reduced
+          // motion here caused a hydration mismatch that left the desk invisible);
+          // reduced motion just lands the pieces instantly
+          initial={{ opacity: 0, scale: 1.12, rotate: item.rotate - 6, y: -14 }}
           animate={{
             opacity: 1,
             scale: 1,
             rotate: item.rotate,
             y: 0,
-            transition: {
-              type: "spring",
-              stiffness: 220,
-              damping: 22,
-              delay: 0.1 + index * 0.07,
-            },
+            transition: reduceMotion
+              ? { duration: 0 }
+              : {
+                  type: "spring",
+                  stiffness: 220,
+                  damping: 24,
+                  delay: 0.1 + index * 0.07,
+                  opacity: { duration: 0.35, ease: "easeOut", delay: 0.1 + index * 0.07 },
+                },
           }}
           transition={{ type: "spring", stiffness: 400, damping: 28 }}
           drag={canDrag}
@@ -117,12 +125,19 @@ export function ProjectDesk() {
           dragElastic={0.08}
           dragTransition={{ power: 0.15, timeConstant: 180 }}
           onPointerDown={() => raise(item.id)}
-          whileHover={canDrag ? { scale: 1.02 } : undefined}
-          whileDrag={{ scale: 1.04, rotate: item.rotate + 1.5 }}
+          whileHover={canDrag && !reduceMotion ? { scale: 1.02 } : undefined}
+          whileDrag={reduceMotion ? undefined : { scale: 1.04, rotate: item.rotate + 1.5 }}
         >
-          {item.art}
+          {isValidElement<{ sizes?: string; loading?: "eager" | "lazy" }>(item.art)
+            ? cloneElement(item.art, {
+                sizes: sizesFor(item),
+                // the piece hidden on phones stays lazy so phones never fetch it
+                loading: item.narrow ? "eager" : "lazy",
+              })
+            : item.art}
         </motion.div>
       ))}
     </div>
+    </MotionConfig>
   );
 }

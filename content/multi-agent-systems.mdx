@@ -1,0 +1,421 @@
+---
+title: "Multi-Agent Systems: When One Agent Isn't Enough"
+publishedAt: "2026-10-28"
+updatedAt: "2026-10-28"
+author: "Manoj L"
+summary: "More agents means more tokens, more latency and more ways to fail. When splitting the work pays off, the patterns that hold up, and a typed orchestrator you can copy."
+image: "/blog/multi-agent-systems.jpg"
+---
+
+Most agents that "need" to be multi-agent don't. They need a better harness. One model in a clean loop, with good tools and disciplined context, covers far more ground than people expect.
+
+But there is a real wall. The task is wide: six independent questions over a large codebase, a review from five angles, a sweep across sources. A single agent either reads everything into one window until it degrades, or works through the pieces one at a time and takes forever. That's where several agents start to earn their cost. HyperOrbs, where your own agent and an AI team share one workspace, and Sally, the multi-agent trading system I built at ImperialX, both live past that wall, so these are the trade-offs I keep coming back to.
+
+This post is about several agents inside **one system you control**: one codebase, one owner, one trust boundary. If you haven't built a single agent loop yet, start with [Build an AI Agent From Scratch](/blog/build-an-ai-agent-from-scratch). Agents that talk to other people's agents across systems are a different problem, covered in [agent-to-agent communication](/blog/agent-to-agent-communication). Everything here assumes the basics from [Building the Best Harness](/blog/building-the-best-harness).
+
+---
+
+## The default is one agent
+
+Multi-agent systems cost you in three ways, on every run.
+
+**Tokens.** Anthropic's write-up of their research system puts a single agent at about 4x the tokens of a chat, and a multi-agent system at about 15x. Their Opus lead with Sonnet subagents beat a single Opus agent by 90.2% on their internal research eval, but the same post says token usage alone explained 80% of the performance variance on BrowseComp. A large part of why multi-agent works is that it spends more. Make sure the task is worth that.
+
+**Latency.** Every hop is another model round trip. In a synchronous fan-out the slowest worker sets the pace, and the planning and merge steps sit on either side of it. On any path with a tight latency budget (Sally's execution path runs in under 100 ms), every extra agent hop has to justify itself.
+
+**Coordination.** Every boundary between agents is a place where context gets lost. Cognition's "Don't Build Multi-Agents" makes the point with a Flappy Bird clone: one subagent builds a background in the style of Super Mario, another builds a bird that doesn't match, and whatever combines them is left reconciling two incompatible sets of decisions. Their principle is worth keeping in view: actions carry implicit decisions, and conflicting decisions carry bad results.
+
+So what do you get for the cost? Three things:
+
+1. **Context isolation.** Each worker gets a clean window, spends it reading and dead-ending, and hands back a short result. The lead's context grows by the result, not the reading. This is the [sub-agent argument from the harness post](/blog/building-the-best-harness), and it's the strongest one.
+2. **Specialisation.** Different roles get different system prompts, tools, permissions and models. A worker that only reads doesn't need write tools. A classifier doesn't need your most expensive model at high effort.
+3. **Parallelism.** Independent subtasks finish in the time of the slowest one instead of the sum of all of them.
+
+If the task doesn't need one of those, don't split it.
+
+| Split when | Keep one agent when |
+| --- | --- |
+| Subtasks are independent and can be checked separately | Each step depends on decisions made in the last one |
+| The reading would overflow or pollute one context | The whole task fits comfortably in one window |
+| Roles need different tools or permissions | Every step needs the same tools |
+| The work is wide and wall-clock time matters | The work is deep and sequential |
+| You can say what "done" means for each piece | You can't write the subtask without doing the task |
+
+The last row catches people. If you can't describe a subtask well enough for a stranger to do it, you can't delegate it to an agent either. Anthropic makes the same observation from the other side: most coding tasks have fewer truly parallel pieces than research does.
+
+---
+
+## Six patterns
+
+Almost every multi-agent system is one of these, or two of them stacked.
+
+### Orchestrator–worker
+
+A lead plans subtasks, fans them out to workers, collects the results and merges them.
+
+```text title="orchestrator-worker"
+                +--------------+
+  task -------> | orchestrator | ---> plan: N typed task specs
+                +------+-------+
+                       |
+        +--------------+--------------+
+        v              v              v
+   +---------+    +---------+    +---------+
+   | worker  |    | worker  |    | worker  |   clean context each,
+   +----+----+    +----+----+    +----+----+   capped and time-limited
+        |              |              |
+        +--------------+--------------+
+                       v
+                +--------------+
+                |    merge     | ---> dedupe, reconcile, report gaps
+                +--------------+
+```
+
+**Use it when** you can't know the subtasks until you see the input: research, multi-angle review, per-file analysis.
+
+**Failure modes:** overlapping scopes (two workers do the same job), gaps (nobody does a piece), over-spawning (Anthropic's early versions spawned 50 subagents for simple queries), and a merge step that quietly averages contradictions away.
+
+### Sequential pipeline
+
+Fixed stages, and each agent's output is the next one's input: extract, then analyse, then draft, then format.
+
+**Use it when** the steps are known in advance and each one benefits from a narrow prompt. It's the easiest pattern to test, because every stage has a fixed input and output.
+
+**Failure modes:** errors compound, since a bad extraction poisons everything downstream, and latency is the sum of every stage. Validate between stages, not only at the end. And be honest about whether a three-stage pipeline is really one agent with a long prompt.
+
+### Router / triage
+
+A cheap classifier looks at the input and sends it to one of several specialists.
+
+**Use it when** inputs fall into distinct categories that need different prompts, tools or models, and you can classify them reliably.
+
+**Failure modes:** misroutes are silent. The specialist does its best with the wrong job and nothing errors. Give the router an explicit "unsure" route to a generalist or a human, and log every routing decision so you can measure where it gets confused.
+
+### Handoff between specialists
+
+Control of the conversation moves from one agent to another. The OpenAI Agents SDK docs draw the line well: with agents as tools, a manager keeps the conversation and calls specialists for bounded subtasks; with a handoff, the specialist becomes the active agent for the rest of the turn.
+
+**Use it when** the user should be talking to the specialist directly, such as support escalation or a booking agent taking over from triage.
+
+**Failure modes:** context lost at the boundary (pass a written summary of what has been decided, not just the last message) and ping-pong, where two agents keep handing the user back and forth. Cap handoffs per conversation.
+
+### Critic / reviewer loop
+
+One agent produces, another evaluates against explicit criteria, and the producer revises. Anthropic's "Building effective agents" calls this evaluator–optimizer.
+
+**Use it when** you have clear criteria and revision measurably helps: code that must pass tests, a draft that must meet a rubric.
+
+**Failure modes:** a critic with vague criteria approves everything or nitpicks forever. Use a fixed rubric and a fixed maximum number of rounds, and where you can, replace the model's opinion with a deterministic check like tests, a schema or a linter. A critic running the same model on the same context tends to share the producer's blind spots.
+
+### Shared blackboard
+
+Agents don't message each other. They read from and write to a shared store (a task board, a document, a structured state object) and pick up work when they see something they can do.
+
+**Use it when** work is opportunistic and the order isn't known up front, or when many agents contribute to one evolving artifact.
+
+**Failure modes:** write conflicts, stale reads, and nobody owning termination. Give every entry an owner and a status, route writes through one gate that validates them, and have exactly one process decide when the run is done.
+
+---
+
+## Delegation is a spec, not a sentence
+
+The most common multi-agent failure isn't a weak model. It's an orchestrator handing a worker one line, something like "research the semiconductor shortage", and hoping.
+
+Anthropic hit exactly this. With short task descriptions, one subagent researched the 2021 automotive chip crisis while two others duplicated work on 2025 supply chains. Their summary: without detailed task descriptions, agents duplicate work, leave gaps, or fail to find necessary information. The MAST study of multi-agent failures lists specification issues as one of its three top-level failure categories, alongside inter-agent misalignment and task verification.
+
+A worker sees only what you send it, and it can't ask a follow-up question. So every delegation message is a spec with five parts:
+
+- **Goal.** What a finished answer looks like, in one sentence.
+- **Inputs.** Everything the worker needs, or handles to it. Never "the doc we discussed".
+- **Constraints.** Scope boundaries, what to ignore, what not to touch. This is where you prevent overlap with sibling workers.
+- **Output schema.** The exact shape you'll parse, enforced by the API rather than requested in prose.
+- **Budget.** Effort level, token ceiling, deadline, and a cap on tool calls if the worker has tools.
+
+Compare:
+
+```text title="vague.txt"
+Look into the auth module and see if there are any issues.
+```
+
+```text title="spec.txt"
+GOAL:        List security risks in the token refresh flow, ranked by severity.
+INPUTS:      src/auth/refresh.ts and src/auth/session.ts (attached), threat model section 3.
+CONSTRAINTS: Refresh flow only; login and logout belong to another worker.
+             Do not propose fixes. Cite file and line for every finding.
+OUTPUT:      WorkerResult JSON: status, findings (claim, evidence, confidence), open_questions.
+BUDGET:      Effort low. Two minutes. No tool calls outside src/auth.
+```
+
+Two details make this work. First, give the worker an honest way out: a `blocked` status and an `open_questions` field. Without one, a worker with missing inputs will invent them. Second, make the planner write its specs in a schema too. If the plan is structured, you can validate it (at most six subtasks, no empty goals) before you spend money on workers.
+
+---
+
+## A working orchestrator
+
+Here's the pattern in one file: a planner that returns typed subtasks, workers that run in parallel under a concurrency cap and hard deadlines, and a merge step that deduplicates and reconciles. It uses the Anthropic TypeScript SDK with structured outputs, so every boundary between agents is a zod schema the model's output is constrained to and validated against.
+
+To keep the orchestration visible, each worker here is a single structured call. In a real system each worker runs its own tool loop, the one from [Build an AI Agent From Scratch](/blog/build-an-ai-agent-from-scratch), but the contract with the orchestrator doesn't change: a spec goes in, a typed result comes out. It needs `@anthropic-ai/sdk`, `zod` 4 and Node 20 or later.
+
+```ts title="orchestrator.ts"
+import Anthropic from "@anthropic-ai/sdk";
+import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
+import { z } from "zod";
+
+const client = new Anthropic({ maxRetries: 2 }); // retries 429, 5xx, dropped connections
+const MODEL = "claude-opus-5-5";
+const MAX_WORKERS = 4; // concurrency cap
+const WORKER_TIMEOUT_MS = 120_000; // hard deadline per worker, retries included
+const RUN_TIMEOUT_MS = 600_000; // hard deadline for the whole run
+
+// ---- Contracts: the only things that cross an agent boundary ----
+
+const Subtask = z.object({
+  id: z.string().describe("Short slug, e.g. 'auth-risks'"),
+  goal: z.string().describe("One sentence: what a finished answer looks like"),
+  context: z.string().describe("Everything the worker needs beyond the shared material"),
+  constraints: z.array(z.string()).describe("Scope limits and things to ignore"),
+  effort: z.enum(["low", "medium"]).describe("Reasoning budget this subtask deserves"),
+});
+const Plan = z.object({ subtasks: z.array(Subtask).min(1).max(6) });
+
+const Finding = z.object({
+  claim: z.string(),
+  evidence: z.string().describe("Quote or pointer into the material"),
+  confidence: z.enum(["high", "medium", "low"]),
+});
+const WorkerResult = z.object({
+  status: z.enum(["complete", "partial", "blocked"]),
+  findings: z.array(Finding),
+  open_questions: z.array(z.string()),
+});
+const Report = z.object({
+  answer: z.string(),
+  conflicts: z.array(z.object({ topic: z.string(), resolution: z.string() })),
+  gaps: z.array(z.string()),
+});
+
+type Subtask = z.infer<typeof Subtask>;
+type Finding = z.infer<typeof Finding>;
+type WorkerResult = z.infer<typeof WorkerResult>;
+type Outcome =
+  | { task: Subtask; ok: true; result: WorkerResult }
+  | { task: Subtask; ok: false; error: string };
+type Run = { signal: AbortSignal; spend: { calls: number; input: number; output: number } };
+
+// ---- One typed model call. Every agent in this file goes through it. ----
+
+async function call<S extends z.ZodType>(
+  schema: S,
+  system: string,
+  prompt: string,
+  effort: "low" | "medium" | "high",
+  run: Run,
+): Promise<z.infer<S>> {
+  const format = zodOutputFormat(schema);
+  const res = await client.messages.create(
+    {
+      model: MODEL,
+      max_tokens: 16000,
+      system,
+      messages: [{ role: "user", content: prompt }],
+      output_config: { effort, format },
+    },
+    { signal: run.signal },
+  );
+  // Count spend before validating: a call that fails validation still cost money.
+  run.spend.calls += 1;
+  run.spend.input += res.usage.input_tokens;
+  run.spend.output += res.usage.output_tokens;
+  // Refusals and max_tokens truncation both end in something that is not your JSON.
+  if (res.stop_reason !== "end_turn") throw new Error(`stopped early: ${res.stop_reason}`);
+  const text = res.content.find((b) => b.type === "text");
+  if (!text) throw new Error("no text block in response");
+  return format.parse(text.text); // JSON.parse + zod validation, typed as z.infer<S>
+}
+
+// ---- Fan-out with a concurrency cap. Output keeps input order; fn must not throw. ----
+
+async function mapLimit<T, R>(items: T[], limit: number, fn: (item: T) => Promise<R>) {
+  const out = new Array<R>(items.length);
+  let next = 0;
+  const lane = async () => {
+    while (next < items.length) {
+      const i = next++;
+      out[i] = await fn(items[i]!);
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, lane));
+  return out;
+}
+
+const PLANNER = `Split the question into 1-6 independent subtasks for workers who cannot
+see each other or ask you anything. Each subtask must be answerable from the material
+alone. Do not overlap scopes. Use one subtask when the question is simple.`;
+
+const WORKER = `Do only the subtask you are given. Back every finding with evidence from
+the material. If the material is not enough, set status to "blocked" and say what is
+missing in open_questions. Never guess to fill a gap.`;
+
+const MERGER = `Merge worker findings into one answer. Findings may conflict: do not
+average them. Name each conflict, side with the better evidence, and say why. List
+failed and incomplete subtasks under gaps; never fill them from your own knowledge.`;
+
+async function runWorker(task: Subtask, material: string, run: Run): Promise<Outcome> {
+  const signal = AbortSignal.any([run.signal, AbortSignal.timeout(WORKER_TIMEOUT_MS)]);
+  const prompt = [
+    `<material>\n${material}\n</material>`,
+    `GOAL: ${task.goal}`,
+    `CONTEXT: ${task.context}`,
+    `CONSTRAINTS:\n${task.constraints.map((c) => `- ${c}`).join("\n")}`,
+  ].join("\n\n");
+  try {
+    const result = await call(WorkerResult, WORKER, prompt, task.effort, { ...run, signal });
+    return { task, ok: true, result };
+  } catch (err) {
+    // A failure becomes data the merge step can see, not an exception that sinks the run.
+    return { task, ok: false, error: signal.aborted ? "timed out" : String(err).slice(0, 300) };
+  }
+}
+
+// Exact-duplicate claims collapse into one finding that remembers every source.
+function dedupe(outcomes: Outcome[]) {
+  const rank = { high: 3, medium: 2, low: 1 };
+  const byClaim = new Map<string, Finding & { sources: string[] }>();
+  for (const o of outcomes) {
+    if (!o.ok) continue;
+    for (const f of o.result.findings) {
+      const key = f.claim.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+      const seen = byClaim.get(key);
+      if (!seen) byClaim.set(key, { ...f, sources: [o.task.id] });
+      else {
+        seen.sources.push(o.task.id);
+        if (rank[f.confidence] > rank[seen.confidence]) Object.assign(seen, f);
+      }
+    }
+  }
+  return [...byClaim.values()];
+}
+
+export async function orchestrate(question: string, material: string) {
+  const run: Run = {
+    signal: AbortSignal.timeout(RUN_TIMEOUT_MS),
+    spend: { calls: 0, input: 0, output: 0 },
+  };
+  const planPrompt = `<material>\n${material}\n</material>\n\nQUESTION: ${question}`;
+  const plan = await call(Plan, PLANNER, planPrompt, "high", run);
+
+  const outcomes = await mapLimit(plan.subtasks, MAX_WORKERS, (t) => runWorker(t, material, run));
+  const findings = dedupe(outcomes);
+  const failed = outcomes.flatMap((o) =>
+    o.ok ? [] : [{ id: o.task.id, goal: o.task.goal, error: o.error }],
+  );
+  const incomplete = outcomes
+    .flatMap((o) => (o.ok && o.result.status !== "complete" ? [o] : []))
+    .map((o) => ({ id: o.task.id, open: o.result.open_questions }));
+  if (failed.length === outcomes.length) throw new Error(`all failed: ${JSON.stringify(failed)}`);
+
+  const mergeInput = JSON.stringify({ question, findings, failed, incomplete }, null, 2);
+  const report = await call(Report, MERGER, mergeInput, "high", run);
+  return { report, outcomes, spend: run.spend };
+}
+```
+
+What to notice:
+
+- **The orchestration is code, not a model.** The model plans and merges. Plain TypeScript enforces the cap, the deadlines and the schemas. Nothing decides how many workers to run without a hard ceiling underneath: `.max(6)` on the plan and `MAX_WORKERS` on the pool.
+- **The budget is part of the spec.** The planner picks `effort` per subtask, but only `low` or `medium`. The harness owns `max_tokens` and the deadline.
+- **Check `stop_reason` before you trust the JSON.** Structured outputs constrain the format, but a refusal or a `max_tokens` cut-off can still return something that doesn't match. The structured-outputs docs say to check it first, and `call` does.
+- **Failures are values.** `runWorker` never throws. A timed-out, refused or malformed worker becomes an `Outcome` with `ok: false`, and the merge step is told about it explicitly, so it reports a gap instead of papering over one.
+- **Shared material is attached by code, not copied by the planner.** The planner writes the spec and the orchestrator attaches the material. Asking a model to copy a document into every subtask is slow, expensive and lossy.
+- **Spend is counted before validation.** A call that returns bad JSON still cost money. If you only count successes, your cost per task is fiction.
+
+---
+
+## Parallelism and merging
+
+Fan-out looks like one `Promise.all`. In production it's five separate decisions.
+
+**Concurrency limits.** Unbounded fan-out turns into 429s, a cost spike, and hammered downstream APIs once workers have tools. Cap it. The example runs four lanes pulling from a shared queue, which also keeps results in input order.
+
+**Timeouts.** The SDK's `timeout` option applies per attempt, and timed-out attempts are retried, so with the default two retries a request can run three times longer than the number you set. For a real deadline, pass an `AbortSignal`. The example uses two, one per worker and one for the whole run, combined with `AbortSignal.any`. When the run deadline fires, every in-flight worker stops with it and queued ones fail immediately.
+
+**Retries.** Let the SDK retry transport failures; it already retries 429s, 5xx responses and dropped connections with backoff. Be deliberate about everything else. A schema failure is worth one retry with the validation error fed back. A refusal usually isn't worth retrying with the same input. A worker with side effects shouldn't be retried at all unless its actions are idempotent.
+
+**Partial results.** Decide up front what's good enough. Five of six workers is usually a useful answer if the report says which sixth is missing. One of six usually isn't. Make the threshold explicit instead of letting whatever came back become the answer.
+
+**Duplicates and conflicts.** Workers with neighbouring scopes will find the same thing. Exact duplicates are cheap to collapse in code, and keeping every source tells you something: a claim two workers reached independently is better supported than one either found alone. Near-duplicates need embeddings or a model. Conflicts are a different problem from duplicates. Don't average them, and don't let the merge keep whichever arrived last. Side with the better evidence, say why, and if neither side wins, report both.
+
+One cost detail for parallel workers over the same material: a prompt-cache entry becomes readable only after the first response begins streaming, so N workers launched at the same instant all pay full price for the shared prefix. Put the shared material first so the prefix is byte-identical across workers, and if input cost dominates, start one worker, wait for its first streamed token, then release the rest.
+
+---
+
+## State and memory across agents
+
+The rule I work to: shared state is small and deliberate, and private state is everything else.
+
+- **Shared:** the original task, the plan, the decisions every worker must respect, and handles to large artifacts.
+- **Private:** each worker's transcript, tool results, scratch notes and dead ends.
+
+Workers return findings, not transcripts. If a worker hands back its whole exploration, the orchestrator's context now holds every worker's reading, which is the exact problem you split to avoid. Put a schema on the result and keep it tight. If the full output matters, write it to storage and return a handle.
+
+Decisions are the shared state people forget. Cognition's Flappy Bird failure is a missing decision: nobody fixed the art style before two workers each made one up. If workers must agree on something, whether that's naming, units, an assumption about the data or a visual style, decide it in the plan and pass it to every worker as a constraint. Don't let it emerge.
+
+For anything that outlives the run, keep a single writer. Workers can propose memory updates; one agent, or plain code, validates and commits them. Several agents writing to the same long-term store is how you end up with contradictory memories and no record of which one came from where.
+
+Watch the orchestrator's own context too. It sees every plan, result and merge. On long runs, give it the same discipline as any single agent: clear results once they've been merged, and keep a written log of decisions instead of relying on the transcript to remember them.
+
+---
+
+## Safety: more agents, more blast radius
+
+Every agent you add is another thing that can take an action. Three controls matter most.
+
+**Human-in-the-loop checkpoints.** Put a person in front of anything irreversible or expensive: before a plan with a large budget runs, before money moves, before anything is sent or deleted. Sally has human-in-the-loop fallback controls for this reason. Its agents reason over live market data, and people need a reliable way to step in. Build the checkpoint into the harness as a gate the action cannot bypass. A line in a prompt is not a checkpoint.
+
+**Least privilege per worker.** Give each role only the tools it needs. Research workers read; one agent, ideally behind a human gate, writes. And treat worker output as untrusted input. A worker that read a hostile web page can carry an injected instruction straight into the orchestrator inside a "finding". The [lethal trifecta](/blog/building-the-best-harness) applies to every path through the system, not to each agent on its own: if untrusted content can reach an agent that holds private data and an outbound channel, that path is an exfiltration route.
+
+**Stopping runaway loops.** Agents in a loop don't get tired. Put hard limits in code: maximum subtasks per plan, maximum depth (workers can't spawn workers unless you decided they can), maximum rounds in any critic loop, maximum handoffs per conversation, a token or money budget per run, and a wall-clock deadline. Add a no-progress check, so a loop that produces the same output twice stops. When a limit trips, end the run with a clear partial result rather than an exception nobody reads.
+
+---
+
+## Evaluating and debugging
+
+You can't debug a multi-agent system from its final answer. When the report is wrong, the cause could be a bad plan, a bad worker or a bad merge, and each needs a different fix.
+
+**Per-agent traces.** One trace ID per run and one span per agent call, and on each span the exact spec it received, its output, tokens, latency and `stop_reason`. Anthropic credits full production tracing with letting them diagnose why agents failed and fix issues systematically. If you log only the final answer, you're guessing.
+
+**Stage-level evals.** Test each role in isolation with fixed inputs. For the planner: do the subtasks cover the question without overlapping? For a worker: given a fixed spec, is the result correct and backed by evidence? For the merge: given fixed findings with a planted conflict and a failed worker, does the report surface both? The merge eval catches the most embarrassing failures, the ones where the system confidently fills a gap it was told about.
+
+**End-to-end evals.** Start small. Anthropic began with about 20 real queries rather than waiting for a large suite. Grade against a rubric, use a model judge where a person would otherwise read every output, and always run the single-agent baseline next to it. The question isn't whether the multi-agent system works. It's whether it beats one agent given the same budget.
+
+**Cost per task.** Sum tokens across every agent in the run, including failed and retried calls, and divide by the tasks that actually succeeded. Track it per role as well, so you know whether the planner, the workers or the merge is eating the budget. That number tells you whether splitting was worth it.
+
+The MAST taxonomy (14 failure modes in three groups: specification issues, inter-agent misalignment, and task verification) makes a decent checklist for reading traces. Start with the first group. Those are the failures you fix by editing a spec, and they're the cheapest to fix.
+
+---
+
+## Build order
+
+If you're adding agents to a system today, in this order:
+
+1. **Build and eval one agent first.** Its score and its cost per task are your baseline.
+2. **Name the wall.** Context, wall-clock time, or specialisation. If you can't name one, stop here.
+3. **Pick the simplest pattern that removes it.** Usually orchestrator–worker or a router.
+4. **Write delegation as typed specs:** goal, inputs, constraints, output schema, budget.
+5. **Cap everything in code:** concurrency, deadlines, depth, rounds, spend.
+6. **Make failure a value.** Partial results with explicit gaps beat exceptions.
+7. **Trace every agent call** and eval each stage on its own.
+8. **Compare against the single agent at equal spend.** Keep the split only if it wins.
+
+Everything above assumes you own every agent in the system. When the other agent belongs to someone else, with its own owner, its own trust boundary and a protocol in the middle, the problems change. That's the subject of [agent-to-agent communication](/blog/agent-to-agent-communication).
+
+---
+
+## Further reading
+
+- [How we built our multi-agent research system](https://www.anthropic.com/engineering/multi-agent-research-system) — Anthropic Engineering
+- [Building effective agents](https://www.anthropic.com/engineering/building-effective-agents) — Anthropic Engineering
+- [Don't Build Multi-Agents](https://cognition.com/blog/dont-build-multi-agents) — Cognition
+- [Why Do Multi-Agent LLM Systems Fail?](https://arxiv.org/abs/2503.13657) — the MAST taxonomy, arXiv
+- [Agent orchestration](https://openai.github.io/openai-agents-python/multi_agent/) — OpenAI Agents SDK docs
+- [Structured outputs](https://platform.claude.com/docs/en/build-with-claude/structured-outputs) — Claude API docs

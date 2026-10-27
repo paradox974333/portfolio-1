@@ -1,110 +1,82 @@
-"use client";
-
-import { useState, useRef, useEffect, type ComponentProps } from "react";
-import { Copy, Check } from "lucide-react";
-import { Button } from "../ui/button";
 import { codeToHtml } from "shiki/bundle/web";
-import { cn } from "@/lib/utils";
+import { CopyButton } from "./copy-button";
 
-type CodeBlockProps = ComponentProps<"pre">;
+type CodeBlockProps = {
+  code: string;
+  lang?: string;
+  title?: string;
+};
 
-function extractLanguage(className?: string): string {
-  if (!className) return "plaintext";
-  const match = className.match(/language-([a-z0-9-]+)/i);
-  return match ? match[1] : "plaintext";
+const PLAIN = new Set(["", "text", "txt", "plaintext", "plain", "output"]);
+
+// Display names for the header when a block has no filename.
+const LABELS: Record<string, string> = {
+  ts: "TypeScript",
+  typescript: "TypeScript",
+  tsx: "TSX",
+  js: "JavaScript",
+  javascript: "JavaScript",
+  jsx: "JSX",
+  json: "JSON",
+  jsonc: "JSON",
+  py: "Python",
+  python: "Python",
+  sh: "Shell",
+  bash: "Shell",
+  shell: "Shell",
+  shellscript: "Shell",
+  zsh: "Shell",
+  console: "Terminal",
+  cpp: "C++",
+  "c++": "C++",
+  c: "C",
+  yaml: "YAML",
+  yml: "YAML",
+  sql: "SQL",
+  html: "HTML",
+  css: "CSS",
+  md: "Markdown",
+  markdown: "Markdown",
+  mdx: "MDX",
+};
+
+async function highlight(code: string, lang: string) {
+  if (PLAIN.has(lang)) return null;
+  try {
+    return await codeToHtml(code, {
+      lang: lang === "console" ? "shellscript" : lang,
+      themes: { light: "github-light-default", dark: "github-dark-default" },
+      defaultColor: false,
+    });
+  } catch {
+    // unknown language: fall through to plain text rather than failing the page
+    return null;
+  }
 }
 
-export function CodeBlock({ children, ...props }: CodeBlockProps) {
-  const [copied, setCopied] = useState(false);
-  const [{ html, className, title }, setRenderState] = useState<{
-    html: string;
-    className: string;
-    title: string | null;
-  }>({ html: "", className: "", title: null });
-  const preRef = useRef<HTMLPreElement>(null);
-
-  useEffect(() => {
-    const pre = preRef.current;
-    const codeEl = pre?.querySelector("code");
-    if (!pre || !codeEl) return;
-
-    const codeText = codeEl.textContent || "";
-    const lang = extractLanguage(codeEl.className);
-    const nextTitle = codeEl.getAttribute("data-title");
-    const nextClassName = codeEl.className || "";
-
-    void codeToHtml(codeText, {
-      lang: lang as any,
-      themes: {
-        light: "github-light",
-        dark: "github-dark",
-      },
-      defaultColor: false,
-    })
-      .then((html) => {
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(html, "text/html");
-        setRenderState({
-          html: doc.querySelector("code")?.innerHTML ?? "",
-          className: nextClassName,
-          title: nextTitle,
-        });
-      })
-      .catch((error) => {
-        console.error("Failed to highlight code:", error);
-        setRenderState({ html: "", className: nextClassName, title: nextTitle });
-      });
-  }, [children]);
-
-  const handleCopy = async () => {
-    const code = preRef.current?.textContent || "";
-    try {
-      await navigator.clipboard.writeText(code);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch (error) {
-      console.error("Failed to copy code:", error);
-    }
-  };
+/**
+ * Highlighted on the server, so the page arrives already colored and the only
+ * client code is the copy button.
+ */
+export async function CodeBlock({ code, lang = "", title }: CodeBlockProps) {
+  const source = code.replace(/\r\n?/g, "\n").replace(/\n+$/, "");
+  const language = lang.toLowerCase();
+  const html = await highlight(source, language);
+  const label = title ?? LABELS[language] ?? (PLAIN.has(language) ? "Text" : language);
 
   return (
-    <div className="group relative rounded-xl overflow-hidden border border-border">
-      <pre
-        ref={preRef}
-        {...props}
-        className={cn("p-0! m-0! overflow-x-auto", props.className)}
-      >
-        {title && (
-          <div className="p-3 text-xs font-medium border-b border-border rounded-t-xl bg-muted/50 text-foreground">
-            {title}
-          </div>
-        )}
-
-        <Button
-          onClick={handleCopy}
-          variant="outline"
-          size="icon"
-          className={cn("absolute size-8 text-primary cursor-pointer right-3 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity rounded-md border border-border shadow-none", title ? "top-13" : "top-3", props.className)}
-          aria-label="Copy code"
-        >
-          {copied ? <Check className="size-4" /> : <Copy className="size-4" />}
-        </Button>
-        {html && (
-          <div className="p-3">
-            <code
-              className={`shiki ${className}`}
-              dangerouslySetInnerHTML={{ __html: html }}
-            />
-          </div>
-        )}
-
-        {!html && (
-          <div className="p-4">
-            {children}
-          </div>
-        )}
-      </pre >
-    </div >
+    <figure className="code-block not-prose -mx-5 my-8 overflow-hidden border-y border-border bg-panel sm:mx-0 sm:rounded-lg sm:border">
+      <figcaption className="flex h-10 items-center justify-between gap-3 border-b border-border pl-5 pr-2 sm:pl-4">
+        <span className="truncate font-mono text-xs text-muted-foreground">{label}</span>
+        <CopyButton text={source} />
+      </figcaption>
+      {html ? (
+        <div dangerouslySetInnerHTML={{ __html: html }} />
+      ) : (
+        <pre tabIndex={0}>
+          <code>{source}</code>
+        </pre>
+      )}
+    </figure>
   );
 }
-

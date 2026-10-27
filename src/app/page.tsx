@@ -26,7 +26,7 @@ export default function Page() {
         id="intro"
         data-ruler="Intro"
         aria-label="Introduction"
-        className="relative px-5 pt-1 sm:px-8"
+        className="relative px-5 pb-3 pt-1 sm:px-8"
       >
         <MarginNote className="top-24">Drag these around</MarginNote>
         <ProjectDesk />

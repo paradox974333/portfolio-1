@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Eye } from "lucide-react";
 
 /**
  * Shared across every list item so the index issues exactly one request
@@ -12,31 +11,45 @@ let statsPromise: Promise<Record<string, number>> | null = null;
 function loadStats() {
   if (!statsPromise) {
     statsPromise = fetch("/api/blog/stats")
-      .then((res) => res.json())
-      .then((data) => (data.views ?? {}) as Record<string, number>)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: { views?: Record<string, number> } | null) => data?.views ?? {})
       .catch(() => ({}));
   }
   return statsPromise;
 }
 
+export function formatCount(n: number) {
+  return n >= 10000
+    ? new Intl.NumberFormat("en", { notation: "compact" }).format(n)
+    : n.toLocaleString("en-US");
+}
+
+/**
+ * Renders " · 1,204 views" once the count is known. Nothing at all when the
+ * stats store is offline or the post has no views yet, so the meta line never
+ * shows a placeholder or a dangling separator.
+ */
 export function ViewCount({ slug }: { slug: string }) {
   const [views, setViews] = useState<number | null>(null);
 
   useEffect(() => {
     let active = true;
-    loadStats().then((stats) => active && setViews(stats[slug] ?? 0));
+    loadStats().then((stats) => {
+      if (active && typeof stats[slug] === "number") setViews(stats[slug]);
+    });
     return () => {
       active = false;
     };
   }, [slug]);
 
-  if (views === null) return null;
+  if (!views) return null;
 
   return (
-    <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-      <Eye className="size-3" aria-hidden />
-      <span className="tabular-nums">{views.toLocaleString("en-US")}</span>
-      <span className="sr-only">views</span>
-    </span>
+    <>
+      <span aria-hidden>·</span>
+      <span className="tabular-nums">
+        {formatCount(views)} {views === 1 ? "view" : "views"}
+      </span>
+    </>
   );
 }

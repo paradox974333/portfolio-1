@@ -1,49 +1,39 @@
+/* eslint-disable @next/next/no-img-element */
 import { CodeBlock } from "@/components/mdx/code-block";
+import { Heading } from "@/components/mdx/heading";
 import { MediaContainer } from "@/components/mdx/media-container";
-import type { ComponentProps } from "react";
+import { isValidElement, type ComponentProps, type ReactNode } from "react";
 
-type CodeProps = ComponentProps<"code"> & {
-  "data-language"?: string;
+type FencedCodeProps = {
+  className?: string;
+  children?: ReactNode;
+  "data-title"?: string;
 };
+
+// A fenced block arrives as <pre><code className="language-ts" data-title="…">text</code></pre>.
+function Pre({ children, ...props }: ComponentProps<"pre">) {
+  if (!isValidElement<FencedCodeProps>(children) || typeof children.props.children !== "string") {
+    return <pre {...props}>{children}</pre>;
+  }
+  const { className, children: code, "data-title": title } = children.props;
+  const lang = className?.match(/language-([\w+#-]+)/)?.[1];
+  return <CodeBlock code={code} lang={lang} title={title} />;
+}
 
 export const mdxComponents = {
   MediaContainer,
-  pre: (props: ComponentProps<"pre">) => <CodeBlock {...props} />,
-  hr: (props: ComponentProps<"hr">) => (
-    <div className="my-10 flex w-full items-center" {...props}>
-      <div
-        className="flex-1 h-px bg-border"
-        style={{
-          maskImage:
-            "linear-gradient(90deg, transparent, black 8%, black 92%, transparent)",
-          WebkitMaskImage:
-            "linear-gradient(90deg, transparent, black 8%, black 92%, transparent)",
-        }}
-      />
-    </div>
-  ),
+  pre: Pre,
+  h2: (props: ComponentProps<"h2">) => <Heading as="h2" {...props} />,
+  h3: (props: ComponentProps<"h3">) => <Heading as="h3" {...props} />,
+  h4: (props: ComponentProps<"h4">) => <Heading as="h4" {...props} />,
+  // a full-bleed hairline, the same rule that separates rows everywhere else
+  hr: () => <hr className="-mx-5 border-border sm:-mx-8" />,
   table: (props: ComponentProps<"table">) => (
-    <div className="my-6 border border-border rounded-xl overflow-hidden">
-      <div className="w-full overflow-x-auto">
-        <table
-          className="m-0! w-full min-w-full border-separate border-spacing-0"
-          {...props}
-        />
-      </div>
+    <div className="table-wrap not-prose my-8 overflow-x-auto rounded-lg border border-border" tabIndex={0}>
+      <table {...props} />
     </div>
   ),
-  code: ({ children, ...props }: CodeProps) => {
-    if (props["data-language"]) {
-      return <code {...props}>{children}</code>;
-    }
-    return (
-      <code
-        className="px-1.5 py-0.5 rounded-md bg-muted/60 dark:bg-muted/40 text-sm font-mono text-foreground/90"
-        {...props}
-      >
-        {children}
-      </code>
-    );
-  },
+  img: ({ alt = "", ...props }: ComponentProps<"img">) => (
+    <img alt={alt} loading="lazy" decoding="async" {...props} />
+  ),
 } as const;
-

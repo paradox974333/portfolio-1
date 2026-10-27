@@ -4,11 +4,17 @@
 import { DATA } from "@/data/resume";
 import { ArrowUpRight } from "lucide-react";
 import { AnimatePresence, motion, useMotionValue, useSpring } from "motion/react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { BrowserShot } from "./desk-items";
 import { useFinePointer } from "./use-fine-pointer";
 
 type Project = (typeof DATA.projects)[number];
+
+// preview card geometry, in px
+const CARD = 256;
+const GAP = 20;
+const EDGE = 12;
+const TOP = 64;
 
 const yearOf = (dates: string) => dates.match(/\d{4}/)?.[0] ?? "Earlier";
 
@@ -43,22 +49,34 @@ export function WorkList() {
   const x = useSpring(pointerX, { stiffness: 450, damping: 38 });
   const y = useSpring(pointerY, { stiffness: 450, damping: 38 });
 
+  const card = useRef<HTMLDivElement>(null);
+
+  // Beside the cursor, flipped to its left near the right edge and kept clear of
+  // the sticky nav and the bottom of the screen.
+  const place = (clientX: number, clientY: number) => {
+    const height = card.current?.offsetHeight ?? 190;
+    const fitsRight = clientX + GAP + CARD + EDGE <= window.innerWidth;
+    pointerX.set(fitsRight ? clientX + GAP : Math.max(EDGE, clientX - GAP - CARD));
+    pointerY.set(
+      Math.max(TOP, Math.min(clientY - height / 2, window.innerHeight - height - EDGE))
+    );
+  };
+
   const show = (project: Project, event: React.PointerEvent) => {
+    if (event.pointerType === "touch") return;
+    place(event.clientX, event.clientY);
     if (!preview) {
       // first hover: appear at the cursor instead of gliding in from the last spot
-      x.jump(event.clientX);
-      y.jump(event.clientY);
+      x.jump(pointerX.get());
+      y.jump(pointerY.get());
     }
     setPreview(project);
   };
 
   return (
     <div
-      className="px-3 py-5 sm:px-5"
-      onPointerMove={(event) => {
-        pointerX.set(event.clientX);
-        pointerY.set(event.clientY);
-      }}
+      className="px-3 pb-2 pt-5 sm:px-5"
+      onPointerMove={(event) => place(event.clientX, event.clientY)}
       onPointerLeave={() => setPreview(null)}
     >
       {GROUPS.map(([year, projects]) => (
@@ -98,7 +116,7 @@ export function WorkList() {
                 </>
               );
               const row =
-                "group flex items-center gap-3 rounded-lg px-2 py-2 text-[0.875rem] sm:px-3 sm:text-[0.9375rem] hover:bg-panel";
+                "group flex items-center gap-3 rounded-lg px-2 py-2 text-[0.875rem] transition-colors hover:bg-panel focus-visible:bg-panel focus-visible:outline-offset-0 sm:px-3 sm:text-[0.9375rem]";
               return (
                 <li
                   key={project.title}
@@ -135,7 +153,7 @@ export function WorkList() {
             exit={{ opacity: 0, scale: 0.94, rotate: -3 }}
             transition={{ type: "spring", stiffness: 380, damping: 26 }}
           >
-            <div className="ml-6 w-64 -translate-y-1/2">
+            <div ref={card} className="w-64">
               {preview.href ? (
                 <BrowserShot src={preview.image} address={hostOf(preview.href)} />
               ) : (

@@ -1,9 +1,11 @@
 /* eslint-disable @next/next/no-img-element */
+import { cn } from "@/lib/utils";
 
 interface MediaContainerProps {
   src: string;
   alt?: string;
   type?: "image" | "video";
+  caption?: string;
   className?: string;
 }
 
@@ -11,24 +13,21 @@ export function MediaContainer({
   src,
   alt = "",
   type = "image",
-  className = "",
+  caption,
+  className,
 }: MediaContainerProps) {
   return (
-    <div className={`ring-4 ring-muted w-full h-[300px] rounded-lg overflow-hidden flex items-center justify-center ${className}`}>
-      {type === "image" ? (
-        <img
-          src={src}
-          alt={alt}
-          className="w-full h-full object-cover object-center max-w-full max-h-full"
-        />
-      ) : (
-        <video
-          src={src}
-          className="w-full h-full object-cover object-center max-w-full max-h-full"
-          controls
-        />
+    <figure className={cn("not-prose my-8", className)}>
+      <div className="overflow-hidden rounded-lg border border-border bg-panel">
+        {type === "image" ? (
+          <img src={src} alt={alt} loading="lazy" decoding="async" className="block h-auto w-full" />
+        ) : (
+          <video src={src} className="block h-auto w-full" controls preload="metadata" />
+        )}
+      </div>
+      {caption && (
+        <figcaption className="mt-2.5 text-center text-xs text-muted-foreground">{caption}</figcaption>
       )}
-    </div>
+    </figure>
   );
 }
-

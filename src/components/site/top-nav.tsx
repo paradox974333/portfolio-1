@@ -7,7 +7,7 @@ import { MoonIcon, SunIcon } from "lucide-react";
 import { useTheme } from "next-themes";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useActiveSection } from "./use-active-section";
 
 const USERNAME = DATA.url.split("github.com/")[1];
@@ -34,11 +34,17 @@ const pill =
 
 function MobileMenu() {
   const [open, setOpen] = useState(false);
+  const wrapper = useRef<HTMLDivElement>(null);
+  const button = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     if (!open) return;
+    // focus moves into the menu; Escape closes it and hands focus back to the pill
+    wrapper.current?.querySelector<HTMLElement>("#mobile-menu a")?.focus();
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setOpen(false);
+      if (event.key !== "Escape") return;
+      setOpen(false);
+      button.current?.focus();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -49,26 +55,33 @@ function MobileMenu() {
       {open && (
         <div aria-hidden className="fixed inset-0 z-40 sm:hidden" onClick={() => setOpen(false)} />
       )}
-      <div className="fixed bottom-4 left-4 z-50 sm:hidden">
-        {open && (
-          <nav
-            id="mobile-menu"
-            aria-label="Sections"
-            className="mb-2 w-52 rounded-xl border border-border bg-panel/95 p-1 shadow-[0_16px_40px_-12px_rgba(0,0,0,0.6)] backdrop-blur-md"
-          >
-            {MENU.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                onClick={() => setOpen(false)}
-                className="block rounded-lg px-3 py-2.5 text-sm text-muted-foreground transition-colors hover:bg-background hover:text-foreground"
-              >
-                {link.label}
-              </Link>
-            ))}
-          </nav>
-        )}
+      <div
+        ref={wrapper}
+        className="fixed bottom-4 left-4 z-50 sm:hidden"
+        onBlur={(event) => {
+          // tabbing out of the menu closes it
+          if (open && !wrapper.current?.contains(event.relatedTarget as Node | null)) setOpen(false);
+        }}
+      >
+        <nav
+          id="mobile-menu"
+          aria-label="Sections"
+          hidden={!open}
+          className="mb-2 w-52 rounded-xl border border-border bg-panel p-1 shadow-[0_16px_40px_-12px_rgba(0,0,0,0.45)] dark:shadow-[0_16px_40px_-12px_rgba(0,0,0,0.6)]"
+        >
+          {MENU.map((link) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              onClick={() => setOpen(false)}
+              className="block rounded-lg px-3 py-2.5 text-sm text-muted-foreground transition-colors hover:bg-background hover:text-foreground focus-visible:bg-background focus-visible:text-foreground focus-visible:outline-offset-0"
+            >
+              {link.label}
+            </Link>
+          ))}
+        </nav>
         <button
+          ref={button}
           type="button"
           aria-expanded={open}
           aria-controls="mobile-menu"

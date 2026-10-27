@@ -1,7 +1,9 @@
 /* eslint-disable @next/next/no-img-element */
 import { DATA } from "@/data/resume";
 
-const cell = "relative flex items-start gap-3 bg-background px-5 py-4 sm:px-8";
+// a focused link lights up its whole cell, not just its words
+const cell =
+  "relative flex items-start gap-3 bg-background px-5 py-3.5 sm:px-8 has-[a:focus-visible]:bg-panel";
 
 export function EducationGrid() {
   return (
@@ -11,14 +13,14 @@ export function EducationGrid() {
           <img
             src={school.logoUrl}
             alt=""
-            className="mt-0.5 size-7 flex-none rounded-md bg-white object-contain p-0.5"
+            className="mt-0.5 size-7 flex-none rounded-md bg-white object-contain p-0.5 ring-1 ring-border"
           />
           <div className="min-w-0">
             <a
               href={school.href}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-sm font-medium text-foreground after:absolute after:inset-0"
+              className="text-sm font-medium text-foreground after:absolute after:inset-0 focus-visible:outline-none focus-visible:after:outline-2 focus-visible:after:-outline-offset-2 focus-visible:after:outline-signal"
             >
               {school.school}
             </a>
@@ -34,12 +36,12 @@ export function EducationGrid() {
           <img
             src={hackathon.image}
             alt=""
-            className="mt-0.5 size-7 flex-none rounded-md bg-white object-contain p-0.5"
+            className="mt-0.5 size-7 flex-none rounded-md bg-white object-contain p-0.5 ring-1 ring-border"
           />
           <div className="min-w-0">
             <p className="text-sm font-medium text-foreground">
               {hackathon.title}
-              <span className="ml-2 text-xs font-normal tabular-nums text-muted-foreground">
+              <span className="mt-0.5 block text-xs font-normal tabular-nums text-muted-foreground sm:ml-2 sm:mt-0 sm:inline">
                 {hackathon.dates}
               </span>
             </p>

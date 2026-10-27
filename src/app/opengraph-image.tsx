@@ -1,172 +1,154 @@
- 
 import { ImageResponse } from "next/og";
-import { DATA } from "@/data/resume";
+import { C, MonoLabel, OG_SIZE, OgFrame, Words, loadOgFonts, publicImage } from "@/lib/og";
 
-export const runtime = "edge";
-
-export const alt = DATA.name;
-export const size = {
-    width: 1200,
-    height: 630,
-};
+export const alt =
+  "Manoj L: real-time C++ for surgical navigation at HTIC, IIT Madras, and agentic AI in production";
+export const size = OG_SIZE;
 export const contentType = "image/png";
 
-const getFontData = async () => {
-    try {
-        const [cabinetGrotesk, clashDisplay] = await Promise.all([
-            fetch(
-                new URL("../../public/fonts/CabinetGrotesk-Medium.ttf", import.meta.url)
-            ).then((res) => res.arrayBuffer()),
-            fetch(
-                new URL("../../public/fonts/ClashDisplay-Semibold.ttf", import.meta.url)
-            ).then((res) => res.arrayBuffer()),
-        ]);
-        return { cabinetGrotesk, clashDisplay };
-    } catch (error) {
-        console.error("Failed to load fonts:", error);
-        return null;
-    }
-};
+const GREETING = "Hello, I'm Manoj L";
 
-const styles = {
-    outerWrapper: {
-        height: "100%",
-        width: "100%",
-        display: "flex",
-        flexDirection: "column",
-        backgroundColor: "#ffffff",
-        position: "relative",
-    },
-    middleWrapper: {
-        height: "100%",
-        width: "100%",
-        display: "flex",
-        flexDirection: "column",
-        backgroundColor: "#ffffff",
-        position: "relative",
-        padding: "40px",
-    },
-    wrapper: {
-        height: "100%",
-        width: "100%",
-        display: "flex",
-        flexDirection: "column",
-        backgroundColor: "#fafafa",
-        position: "relative",
-        padding: "40px",
-        border: "1px solid #e5e5e5",
-        borderRadius: "12px",
-    },
-    imageSection: {
-        position: "absolute",
-        top: "40px",
-        left: "40px",
-        display: "flex",
-        alignItems: "center",
-        zIndex: "2",
-    },
-    mainContainer: {
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "flex-start",
-        justifyContent: "flex-end",
-        height: "100%",
-        width: "100%",
-        position: "relative",
-        zIndex: "1",
-    },
-    image: {
-        width: "140px",
-        height: "140px",
-        borderRadius: "24px",
-        border: "4px solid #e5e5e5",
-        objectFit: "cover",
-    },
-    title: {
-        fontFamily: "Clash Display",
-        fontSize: "48px",
-        fontWeight: "600",
-        lineHeight: "1.1",
-        textAlign: "left",
-        color: "#000000",
-        marginBottom: "16px",
-        letterSpacing: "-0.02em",
-        maxWidth: "900px",
-    },
-    description: {
-        fontSize: "20px",
-        fontWeight: "400",
-        lineHeight: "1.5",
-        textAlign: "left",
-        maxWidth: "800px",
-        color: "#404040",
-        marginBottom: "32px",
-        textWrap: "balance",
-    },
-} as const;
+const NOW = [
+  { label: "Work", title: "HTIC, IIT Madras", note: "Surgical navigation in C++" },
+  { label: "Building", title: "HyperOrbs", note: "Your agent + an AI team", live: true },
+  { label: "In production", title: "Sally", note: "Multi-agent trading on MCP" },
+];
 
 export default async function Image() {
-    try {
-        const fontData = await getFontData();
-        const imageUrl = DATA.avatarUrl
-            ? new URL(DATA.avatarUrl, DATA.url).toString()
-            : undefined;
+  const [fonts, photo] = await Promise.all([
+    loadOgFonts(
+      [GREETING, "real-time C++ surgical navigation agentic AI production", ...NOW.flatMap((n) => [n.label, n.title, n.note])].join(" "),
+      ["sans400", "sans600", "sans700", "mono500", "serifItalic"]
+    ),
+    publicImage("me.jpg"),
+  ]);
 
-        return new ImageResponse(
-            (
-                <div style={styles.outerWrapper}>
-                    <div style={styles.middleWrapper}>
-                        <div style={styles.wrapper}>
-                            {imageUrl && (
-                                <div style={styles.imageSection}>
-                                    <img src={imageUrl} alt={DATA.name} style={styles.image} />
-                                </div>
-                            )}
-                            <div style={styles.mainContainer}>
-                                <div style={styles.title}>{DATA.name}</div>
-                                {DATA.description && (
-                                    <div style={styles.description}>{DATA.description}</div>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            ),
-            {
-                ...size,
-                fonts: fontData
-                    ? [
-                        {
-                            name: "Cabinet Grotesk",
-                            data: fontData.cabinetGrotesk,
-                            weight: 400,
-                            style: "normal",
-                        },
-                        {
-                            name: "Cabinet Grotesk",
-                            data: fontData.cabinetGrotesk,
-                            weight: 700,
-                            style: "normal",
-                        },
-                        {
-                            name: "Clash Display",
-                            data: fontData.clashDisplay,
-                            weight: 600,
-                            style: "normal",
-                        },
-                    ]
-                    : undefined,
-            }
-        );
-    } catch (error) {
-        console.error("Error generating OpenGraph image:", error);
-        return new Response(
-            `Failed to generate image: ${error instanceof Error ? error.message : "Unknown error"}`,
-            {
-                status: 500,
-            }
-        );
-    }
+  return new ImageResponse(
+    (
+      <OgFrame
+        aside={
+          <div style={{ display: "flex", alignItems: "center", fontSize: 19, color: C.muted }}>
+            <div style={{ width: 9, height: 9, borderRadius: 9, backgroundColor: C.amber, marginRight: 10 }} />
+            Chennai, India
+          </div>
+        }
+      >
+        <div style={{ display: "flex", flex: 1, padding: "8px 56px 0" }}>
+          <div style={{ display: "flex", flexDirection: "column", flex: 1, paddingRight: 32 }}>
+            <div
+              style={{
+                display: "flex",
+                fontFamily: "Instrument Serif",
+                fontStyle: "italic",
+                fontSize: 50,
+                color: C.text,
+                lineHeight: 1,
+              }}
+            >
+              {GREETING}
+            </div>
+            <Words
+              parts={[
+                "I write",
+                { mark: "real-time C++" },
+                "for surgical navigation and ship",
+                { mark: "agentic AI" },
+                "to production.",
+              ]}
+              style={{
+                marginTop: 22,
+                fontSize: 50,
+                fontWeight: 600,
+                lineHeight: 1.16,
+                letterSpacing: "-0.025em",
+                color: C.text,
+              }}
+            />
+          </div>
+          {photo ? (
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                width: 236,
+                height: 282,
+                marginTop: -6,
+                padding: "12px 12px 0",
+                backgroundColor: "#f4f2ee",
+                borderRadius: 4,
+                transform: "rotate(4deg)",
+                boxShadow: "0 24px 48px rgba(0,0,0,0.55)",
+              }}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={photo} width={212} height={212} alt="" style={{ objectFit: "cover" }} />
+              <div
+                style={{
+                  display: "flex",
+                  marginTop: 12,
+                  fontFamily: "Instrument Serif",
+                  fontStyle: "italic",
+                  fontSize: 30,
+                  color: "#2a2d33",
+                }}
+              >
+                manoj
+              </div>
+            </div>
+          ) : null}
+        </div>
+
+        <div
+          style={{
+            display: "flex",
+            height: 150,
+            flexShrink: 0,
+            backgroundColor: C.panel,
+            borderTop: `1px solid ${C.border}`,
+          }}
+        >
+          {NOW.map((item, index) => (
+            <div
+              key={item.label}
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "center",
+                flex: 1,
+                padding: "0 32px 0 56px",
+                paddingLeft: index === 0 ? 56 : 32,
+                borderLeft: index === 0 ? "none" : `1px solid ${C.border}`,
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center" }}>
+                <MonoLabel style={{ fontSize: 15 }}>{item.label}</MonoLabel>
+                {item.live ? (
+                  <div
+                    style={{
+                      display: "flex",
+                      marginLeft: 10,
+                      padding: "2px 8px",
+                      borderRadius: 5,
+                      backgroundColor: C.amberBg,
+                      color: C.amber,
+                      fontSize: 14,
+                      fontWeight: 600,
+                    }}
+                  >
+                    live
+                  </div>
+                ) : null}
+              </div>
+              <div style={{ display: "flex", marginTop: 10, fontSize: 25, fontWeight: 600, color: C.text }}>
+                {item.title}
+              </div>
+              <div style={{ display: "flex", marginTop: 6, fontSize: 18, color: C.muted }}>{item.note}</div>
+            </div>
+          ))}
+        </div>
+      </OgFrame>
+    ),
+    { ...size, fonts }
+  );
 }
-
-

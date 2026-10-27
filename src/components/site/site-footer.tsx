@@ -2,6 +2,7 @@
 "use client";
 
 import { FlickeringGrid } from "@/components/magicui/flickering-grid";
+import { useReducedMotion } from "motion/react";
 import { DATA } from "@/data/resume";
 import { cn } from "@/lib/utils";
 import { useEffect, useState } from "react";
@@ -38,10 +39,12 @@ function useHomeClock() {
 
 export function SiteFooter() {
   const clock = useHomeClock();
+  // the dot field holds still for readers who asked for less motion
+  const still = useReducedMotion();
   const awake = clock ? clock.hour >= 9 && clock.hour < 23 : null;
 
   return (
-    <footer className="relative mt-20 overflow-hidden border-t border-border">
+    <footer className="relative mt-12 overflow-hidden border-t border-border">
       <div className="relative z-10 flex flex-col items-center px-6 pt-14 text-center">
         <blockquote className="max-w-md text-balance font-serif text-[1.75rem] italic leading-[1.15] sm:text-[2.125rem]">
           {DATA.quote.text}
@@ -81,7 +84,7 @@ export function SiteFooter() {
           className="absolute inset-0"
           squareSize={3}
           gridGap={5}
-          flickerChance={0.2}
+          flickerChance={still ? 0 : 0.2}
           maxOpacity={0.45}
           color="#4c8dff"
           style={{
